@@ -1,4 +1,5 @@
 
+from binascii import hexlify
 from dataclasses import dataclass
 from hashlib import sha256
 from Crypto.Util.number import long_to_bytes
@@ -43,6 +44,24 @@ class Block:
 
         return checkDifficulty(self.hash_sha256(), self.difficulty_bits)
 
+    def to_json(self) -> dict:
+        '''
+        Convert the Block object into json
 
+        Returns:
+            dict: Dict object of block data (json serializable)
 
+        '''
+            
+        # Todo: Add TXs
+
+        result: dict = {
+            'prev': f'0x{hexlify(self.previous_hash).decode()}',
+            'hash': f'0x{hexlify(self.hash_sha256()).decode()}',
+            'timestamp': self.timestamp,
+            'difficulty': self.difficulty_bits,
+            'nonce': hexlify(self.nonce).decode()
+        }
+        
+        return result
 

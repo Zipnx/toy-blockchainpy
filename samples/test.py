@@ -4,7 +4,7 @@
 from typing import List
 
 # Done to import the core package
-import time, sys, os
+import time, sys, os, json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from core.blocks import Block
@@ -48,7 +48,8 @@ def main():
         mine_block(newblk) 
 
         if add_block(newblk):
-            print(f'Block accepted {str(newblk)}')
+            print(f'Block accepted')
+            print(json.dumps(newblk.to_json(), indent = 4))
 
         else:
             print('Block rejected')
