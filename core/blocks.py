@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from hashlib import sha256
 from Crypto.Util.number import long_to_bytes
 
+from core.difficulty import hashDifficulty, adjustDifficulty, getDifficultyTarget, checkDifficulty
+
 @dataclass(init = True)
 class Block:
     previous_hash: bytes
@@ -30,6 +32,17 @@ class Block:
             long_to_bytes(self.difficulty_bits) + 
             self.nonce
         ).digest()
+    
+    def is_hash_valid(self) -> bool:
+        '''
+        Check the block's hash against the current difficulty target
+
+        Returns:
+            bool: Whether the current block hash is valid
+        '''
+
+        return checkDifficulty(self.hash_sha256(), self.difficulty_bits)
+
 
 
 
