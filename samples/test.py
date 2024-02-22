@@ -1,59 +1,34 @@
 
 #!/usr/bin/env python3
 
-from typing import List
-
-# Done to import the core package
-import time, sys, os, json
+# Add the ../ directory to PATH to be able to use coretc
+import os,sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from core.blocks import Block
-from core.miner import mine_block
-
+from typing import List
 from binascii import hexlify
 
-chain: List[Block] = []
+import time, json
 
-def new_testblock(nonce: bytes = b'') -> Block:
-
-    newBlock: Block = Block(
-        previous_hash = chain[-1].hash_sha256() if len(chain) > 0 else b'\x00' * 32,
-        timestamp = int(time.time()),
-        difficulty_bits = 0x2000FFFF, # 256 Hash calculations on average
-        nonce = nonce,
-        transactions = []
-    )
-
-    return newBlock
-
-def add_block(reqBlock: Block) -> bool:
-
-    if not reqBlock.previous_hash == (chain[-1].hash_sha256() if len(chain) > 0 else b'\x00'*32):
-        return False
-    
-    if not reqBlock.is_hash_valid():
-        return False
-
-    chain.append(reqBlock)
-    return True
-
+from coretc.chain import Chain
+from coretc.blocks import Block
+from coretc.miner import mine_block
+from coretc.status import BlockStatus
 
 def main():
-    
+
+    chain: Chain = Chain()
+
     for i in range(8):
-        print(f'{"="*5} New Block #{i} LEN=({len(chain)}) {"="*5}')
-            
-        newblk = new_testblock()
-        
-        mine_block(newblk) 
+        print(f'{f" Block #{i} ":=^20}')
 
-        if add_block(newblk):
-            print(f'Block accepted')
-            print(json.dumps(newblk.to_json(), indent = 4))
+        blk = Block(chain.get_tophash(), int(time.time()), chain.get_current_difficulty(), b'', [])
 
-        else:
-            print('Block rejected')
+        mine_block(blk)
 
+        print('Add block result:', chain.add_block(blk))
+
+        print(json.dumps(blk.to_json(), indent = 4))
 
     
 

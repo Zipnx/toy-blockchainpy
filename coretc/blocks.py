@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from Crypto.Util.number import long_to_bytes
 
-from core.difficulty import hashDifficulty, adjustDifficulty, getDifficultyTarget, checkDifficulty
+from coretc.difficulty import hashDifficulty, adjustDifficulty, getDifficultyTarget, checkDifficulty
 
 @dataclass(init = True)
 class Block:

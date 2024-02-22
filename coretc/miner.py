@@ -1,5 +1,5 @@
 
-from core.blocks import Block
+from coretc.blocks import Block
 
 import time, os, struct
 
