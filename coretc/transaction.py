@@ -1,5 +1,5 @@
 
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from hashlib import sha256
 from typing import List
 from dataclasses import dataclass, field
@@ -13,7 +13,7 @@ class TX:
     outputs: List[UTXO]
 
     nonce: bytes
-    txid: bytes
+    txid: bytes = b''
 
     def hash_sha256(self) -> bytes:
         '''
@@ -41,10 +41,10 @@ class TX:
 
         # TODO: Check for errors on these 2 fuckers
         for in_utxo in self.inputs:
-            in_json.append(in_utxo.to_json_input())
+            in_json.append(in_utxo.to_json(is_input = True))
 
         for out_utxo in self.outputs:
-            out_json.append(out_utxo.to_json_output())
+            out_json.append(out_utxo.to_json(is_input = False))
     
         return {
             'inputs': in_json,
@@ -52,6 +52,59 @@ class TX:
             'nonce': hexlify(self.nonce).decode(),
             'txid': f'0x{hexlify(self.txid).decode()}'
         }
+
+    @staticmethod
+    def from_json(json_data: dict):
+        '''
+        Get a TX object from its JSON form
+
+        Args:
+            json_data (dict): JSON data representing a tx
+
+        Return:
+            TX: Resulting TX object
+        '''
+        
+        req_fields = ['inputs', 'outputs', 'nonce', 'txid']
+
+        if not len(json_data.keys()) == len(req_fields): return None
+
+        for f in req_fields:
+            if f not in json_data.keys(): return None
+
+        res_ins: List[UTXO] = []
+        res_out: List[UTXO] = []
+        
+        in_json: List[dict] = json_data['inputs']
+        out_json: List[dict] = json_data['outputs']
+
+        if not isinstance(in_json, list) or not isinstance(out_json, list): return None
+
+        # Parse the UTXO inputs
+
+        for utxo_json in in_json:
+            obj = UTXO.from_json(utxo_json)
+
+            if obj is None: return None
+            
+            res_ins.append(obj)
+
+        # now do the outputs
+
+        for utxo_json in out_json:
+            obj = UTXO.from_json(utxo_json)
+
+            if obj is None: return None
+
+            res_out.append(obj)
+
+        return TX(
+            inputs      = res_ins,
+            outputs     = res_out,
+            nonce       = unhexlify(json_data['nonce']),
+            txid        = unhexlify(json_data['txid'][2:])
+        )
+
 
     def set_txid(self) -> bytes:
         '''
