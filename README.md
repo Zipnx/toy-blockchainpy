@@ -35,7 +35,7 @@ Will add more stuff when i got time (TXs & UTXOs, maybe a proper chain)
 
 ## TODO:
 - [ ] Forking of the chain
-- [ ] Initialize object from JSON
+- [x] Initialize object from JSON
 - [x] Transactions
 - [ ] Basic UTXO Implementation
 - [ ] An RPC (possibly web based to be clearer)

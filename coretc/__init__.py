@@ -6,3 +6,4 @@ from coretc.miner import mine_block
 
 from coretc.chain import Chain
 from coretc.status import BlockStatus
+from coretc.wallet import Wallet
