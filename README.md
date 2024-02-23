@@ -6,7 +6,7 @@ borderline unreadable (let's be real, this will end up like that again)
 Built to be easy to understand how a blockchain
 works, in conjunction with PoW and such
 
-## Usage:
+## Getting Started
 
 Setup a venv environment, activate it and install the required packages:
 
@@ -33,3 +33,9 @@ You could also add it permanently but imma leave that up to you
 
 Will add more stuff when i got time (TXs & UTXOs, maybe a proper chain)
 
+## TODO:
+- [ ] Forking of the chain
+- [ ] Initialize object from JSON
+- [x] Transactions
+- [ ] Basic UTXO Implementation
+- [ ] An RPC (possibly web based to be clearer)

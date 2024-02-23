@@ -10,10 +10,7 @@ from binascii import hexlify
 
 import time, json
 
-from coretc.chain import Chain
-from coretc.blocks import Block
-from coretc.miner import mine_block
-from coretc.status import BlockStatus
+from coretc import Chain, Block, BlockStatus, mine_block
 
 def main():
 
@@ -25,8 +22,10 @@ def main():
         blk = Block(chain.get_tophash(), int(time.time()), chain.get_current_difficulty(), b'', [])
 
         mine_block(blk)
+        
+        res: BlockStatus = chain.add_block(blk)
 
-        print('Add block result:', chain.add_block(blk))
+        print('Add block result:', res)
 
         print(json.dumps(blk.to_json(), indent = 4))
 
