@@ -22,6 +22,12 @@ For now, run the sample scripts in the ./samples/ directory.
 python3 samples/test.py
 ```
 
+Or execute the test suite using 
+
+```
+python3 run_tests.py
+```
+
 You may also have to add the project directory in the PATH env variable.
 That can be done temporarily, by exporting manually or by running:
 
