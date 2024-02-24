@@ -5,10 +5,7 @@
 import os,sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from typing import List
-from binascii import hexlify
-
-import time, json
+import json
 
 from coretc import Chain, Block, TX, UTXO, BlockStatus, mine_block
 
@@ -24,7 +21,8 @@ def main():
         b'some shit'
     ))
 
-    idk.set_txid()
+    idk.gen_txid()
+    idk.gen_nonce()
 
     print(json.dumps(idk.to_json(), indent = 4))
 

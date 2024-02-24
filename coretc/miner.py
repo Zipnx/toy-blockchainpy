@@ -3,7 +3,7 @@ from coretc.blocks import Block
 
 import time, os, struct
 
-def mine_block(blk: Block) -> None:
+def mine_block(blk: Block, verbose: bool = False) -> None:
     '''
     Mine a block. Brute force the nonce until the hash is valid
 
@@ -18,13 +18,14 @@ def mine_block(blk: Block) -> None:
     mixer = os.urandom(8)
 
     counter = 0
-
+    
     t0 = time.time()
 
     while not blk.is_hash_valid():
         blk.nonce = mixer + struct.pack('Q', counter)
         counter += 1
-
-    print(f'Block mined. TIME: {time.time() - t0:.3f} CYCLES: {counter}')
+    
+    if verbose:
+        print(f'Block mined. TIME: {time.time() - t0:.3f} CYCLES: {counter}')
 
 

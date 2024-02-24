@@ -5,9 +5,16 @@ from coretc.blocks import Block
 from coretc.status import BlockStatus
 
 class Chain:
+    '''
+    Chain Core Class 
+    Handles the addding of new blocks & verification
+    '''
 
-    def __init__(self, initDifficulty: int = 0x200000FF):
-        
+    def __init__(self, initDifficulty: int = 0x200000FF) -> None:
+        '''
+        Initialize a new chain
+        '''
+
         self.difficulty = initDifficulty
         self.blocks: List[Block] = [] 
 
@@ -58,3 +65,23 @@ class Chain:
         '''
 
         return self.blocks[-1].hash_sha256() if len(self.blocks) > 0 else b'\x00'*32
+
+class ForkBlock:
+    '''
+    ForkBlock class, used to represent blocks not yet permanently added to the blockchain
+    Forms a tree structure
+
+    After the tree has reached a certain height (merge len), 
+    a number of blocks (merged block count) get added to the blockchain permanently, 
+    and the tree gets restructured to a subtree of height merge_len - merged block count
+    '''
+
+    def __init__(self, parent: Block, blk: Block):
+        '''
+        Initialize a new fork block object using a block and it's predecessor in the chain
+        '''
+        
+        self.parent: Block = parent
+        self.block:  Block = blk
+        self.next:   List[Block] = []
+        

@@ -1,6 +1,7 @@
 
 import math
 from binascii import hexlify
+from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 # Most of this code is from the old project, TODO: need to document it and or refactor
 
@@ -17,7 +18,8 @@ def getDifficultyTarget(diffBits: int) -> int:
 
 def checkDifficulty(hash: bytes, difficulty: int) -> bool:
 
-    hashValue = int(hexlify(hash), 16)
+    #hashValue = int(hexlify(hash), 16)
+    hashValue = bytes_to_long(hash) # better 
 
     return hashValue < getDifficultyTarget(difficulty)
 

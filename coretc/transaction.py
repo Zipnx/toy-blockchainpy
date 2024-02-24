@@ -2,7 +2,8 @@
 from binascii import hexlify, unhexlify
 from hashlib import sha256
 from typing import List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+import os
 
 from coretc.utxo import UTXO
 from coretc.crypto import data_sign, data_verify
@@ -12,7 +13,7 @@ class TX:
     inputs:  List[UTXO]
     outputs: List[UTXO]
 
-    nonce: bytes
+    nonce: bytes = b''
     txid: bytes = b''
 
     def hash_sha256(self) -> bytes:
@@ -106,7 +107,7 @@ class TX:
         )
 
 
-    def set_txid(self) -> bytes:
+    def gen_txid(self) -> bytes:
         '''
         Sets the transaction id to the current hash of the transaction 
         and at the same time returns it as a list of bytes
@@ -119,6 +120,17 @@ class TX:
 
         self.txid = self.hash_sha256()
         return self.txid
+    
+    def gen_nonce(self) -> bytes:
+        '''
+        Generates a random nonce for the transaction
+
+        Return:
+            bytes: The nonce bytes that have been set to the TX
+        '''
+
+        self.nonce = os.urandom(8)
+        return self.nonce
 
 def hash_utxo_list(lst: List[UTXO]) -> bytes:
     '''
