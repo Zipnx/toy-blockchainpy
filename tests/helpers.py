@@ -8,4 +8,4 @@ def create_example_tx() -> TX:
     return TX([], [])
 
 def create_example_utxo() -> UTXO:
-    return UTXO(b'A'*32, 0.5, b'B'*32, 0, b'')
+    return UTXO(b'A'*32, 0.5, 0)

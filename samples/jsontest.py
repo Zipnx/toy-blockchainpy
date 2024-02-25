@@ -15,22 +15,21 @@ from coretc import Chain, Block, TX, UTXO, BlockStatus, mine_block
 def main():
     
     idk: TX = TX([], [], b'some nonce')
-    
+
     idk.inputs.append(UTXO(
-        b'\xAA'*32,
+        b'A'*32,
         0.69,
-        b'\x00'*32,
-        0,
-        b'some shit'
+        0
     ))
-    idk.set_txid()
+
+    idk.gen_txid()
     
     idk_json = idk.to_json()
     print(json.dumps(idk_json, indent = 4))
     print(f'Original TXID: {idk_json["txid"]}\n')
 
     txcopy: TX = TX.from_json(idk_json)
-    txcopy.set_txid()
+    txcopy.gen_txid()
 
     copy_json = txcopy.to_json()
     print(json.dumps(copy_json, indent = 4))

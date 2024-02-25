@@ -14,11 +14,9 @@ def main():
     idk: TX = TX([], [], b'', b'')
     
     idk.inputs.append(UTXO(
-        b'\xAA'*32,
-        0.69,
-        b'\x00'*32,
-        0,
-        b'some shit'
+        b'A'*32,
+        0.5,
+        0
     ))
 
     idk.gen_txid()
