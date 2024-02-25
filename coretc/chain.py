@@ -1,8 +1,10 @@
 
-from typing import List
+from typing import List, Mapping, Type
 
 from coretc.blocks import Block
 from coretc.status import BlockStatus
+
+from binascii import hexlify
 
 class Chain:
     '''
@@ -76,12 +78,86 @@ class ForkBlock:
     and the tree gets restructured to a subtree of height merge_len - merged block count
     '''
 
-    def __init__(self, parent: Block, blk: Block):
+    def __init__(self, parent, blk: Block):
         '''
         Initialize a new fork block object using a block and it's predecessor in the chain
         '''
         
-        self.parent: Block = parent
+        self.parent: ForkBlock = parent
         self.block:  Block = blk
-        self.next:   List[Block] = []
+        self.next:   List[ForkBlock] = []
         
+        # This is only changed for the root node
+        self.hash_cache: Mapping[bytes, ForkBlock] = {}
+    
+    def get_block_by_hash(self, block_hash: bytes):
+        '''
+        Return the block (if it exists) by it's hash
+        ONLY USED BY THE ROOT NODE
+
+        Return:
+            ForkBlock: Corresponding fork block
+        '''
+
+        if block_hash not in self.hash_cache:
+            return None
+
+        return self.hash_cache[block_hash]
+
+    def get_children_count(self) -> int:
+        '''
+        Return the number of chidren ForkBlock nodes
+        
+        Return:
+            int: Count of total children in sub tree
+        '''
+        
+        count = len(self.next)
+
+        for blk in self.next:
+            count += blk.get_children_count()
+
+        return count
+
+    def get_tree_height(self) -> int:
+        '''
+        Return the height of the subtree
+
+        Return:
+            int: Tree height
+        '''
+        
+        if len(self.next) == 0: return 1
+
+        return max( [ blk.get_tree_height() for blk in self.next ] ) + 1
+
+    def get_tallest_subtree(self):
+        '''
+        Return the tallest subtree
+
+        Return:
+            ForkBlock: Subtree root node
+        '''
+        
+        cur = None
+        cur_size: int  = -1
+
+        for blk in self.next:
+            
+            size = blk.get_tree_height()
+
+            if size >= cur_size:
+
+                cur = blk
+                cur_size = size
+
+        return cur
+
+    def _display(self, level: int = 0, prefix: str = 'Root-> '):
+
+        print( ('\t'*level) + prefix, f'0x{hexlify(self.block.hash_sha256()).decode()}')
+
+        for i, blk in enumerate(self.next):
+
+            blk._display(level = level + 1, prefix = f'|___{i}-> ')
+
