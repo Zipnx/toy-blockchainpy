@@ -88,8 +88,10 @@ class UTXO:
         '''
 
         is_input = 'unlock-sig' in json_data
+        
+        if is_input and 'txid' not in json_data: return None
 
-        req_fields = ['pk', 'amount', 'txid', 'index'] # Owner is just for visualization not actually necessary
+        req_fields = ['pk', 'amount', 'index'] # Owner is just for visualization not actually necessary
 
         for f in req_fields:
             if f not in json_data.keys(): return None
@@ -97,8 +99,8 @@ class UTXO:
         return UTXO(
             owner_pk    = unhexlify(json_data['pk']),
             amount      = float(json_data['amount']),
-            txid        = unhexlify(json_data['txid'][2:]),
             index       = int(json_data['index']),
+            txid        = unhexlify(json_data['txid'][2:]) if is_input else b'',
             signature   = unhexlify(json_data['unlock-sig']) if is_input else b''
         )
     

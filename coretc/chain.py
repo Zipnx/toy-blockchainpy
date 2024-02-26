@@ -81,6 +81,8 @@ class ForkBlock:
     def __init__(self, parent, blk: Block):
         '''
         Initialize a new fork block object using a block and it's predecessor in the chain
+        
+        TODO: Alot can be done to make this more speed efficient
         '''
         
         self.parent: ForkBlock = parent
@@ -90,6 +92,15 @@ class ForkBlock:
         # This is only changed for the root node
         self.hash_cache: Mapping[bytes, ForkBlock] = {}
     
+    def append_block(self, new_block: Block) -> None:
+        '''
+        Create a new ForkBlock and add it to the next List
+        ! DOES NO VALIDATION, BLOCK MUST BE VALIDATED INDIVIDUALLY
+        '''
+
+        new_fb: ForkBlock = ForkBlock(self, new_block)
+        self.next.append(new_fb)
+
     def get_block_by_hash(self, block_hash: bytes):
         '''
         Return the block (if it exists) by it's hash
@@ -130,6 +141,27 @@ class ForkBlock:
         if len(self.next) == 0: return 1
 
         return max( [ blk.get_tree_height() for blk in self.next ] ) + 1
+    
+    def is_node_balanced(self) -> bool:
+        '''
+        Returns true if all child nodes have the same height
+        (will return true is there are no child nodes)
+
+        Return:
+            bool: Whether the node is balanced
+        '''
+
+        if len(self.next) == 0: return True
+
+        cmp_height = self.next[0].get_tree_height()
+
+        for blk in self.next: # yes, the start node doesnt need to be checked, will fix sometime
+            
+            if not blk.get_tree_height() == cmp_height:
+                return False
+
+        return True
+
 
     def get_tallest_subtree(self):
         '''

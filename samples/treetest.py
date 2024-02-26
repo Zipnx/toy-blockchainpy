@@ -25,7 +25,7 @@ def main():
 
     root = ForkBlock(None, sample_block(b'\x00'*32))
     
-    add_to_fork(root)
+    root.append_block(sample_block(root.block.hash_sha256()))
     add_to_fork(root)
 
     side_a = root.next[0]
@@ -44,7 +44,9 @@ def main():
 
     print()
 
-    x: ForkBlock = root.get_tallest_subtree()
+    x = root.get_tallest_subtree()
+
+    if x is None: return
 
     x._display()
 

@@ -86,7 +86,9 @@ class TX:
         for utxo_json in in_json:
             obj = UTXO.from_json(utxo_json)
 
-            if obj is None: return None
+            if obj is None: 
+                #print('error in input deserialization')
+                return None
             
             res_ins.append(obj)
 
@@ -95,7 +97,9 @@ class TX:
         for utxo_json in out_json:
             obj = UTXO.from_json(utxo_json)
 
-            if obj is None: return None
+            if obj is None: 
+                #print('error in output deserialization')
+                return None
 
             res_out.append(obj)
 
