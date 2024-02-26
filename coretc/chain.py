@@ -3,6 +3,7 @@ from typing import List, Mapping, Type
 
 from coretc.blocks import Block
 from coretc.status import BlockStatus
+from coretc.utils.list_utils import CombinedList
 
 from binascii import hexlify
 
@@ -16,9 +17,52 @@ class Chain:
         '''
         Initialize a new chain
         '''
-
+        
+        self.initDifficulty = initDifficulty
         self.difficulty = initDifficulty
         self.blocks: List[Block] = [] 
+
+        self.forks: ForkBlock | None = None
+    
+    def is_block_valid(self, block: Block, additional_chain: List[Block] = []) -> BlockStatus:
+        '''
+        Given a block, check if it's valid. Also verifies in a side chain
+
+        Return:
+            bool: Block validity
+        '''
+        
+        # TODO: Check TXs, for now let's just get this working
+        # TODO: Difficulty changes depending on the additional chain, also the UTXO set (to be implemented)
+        
+        print(len(additional_chain))
+        print(additional_chain)
+
+        reference_chain: CombinedList = CombinedList(self.blocks, additional_chain)
+
+        if len(reference_chain) == 0:
+
+            if not block.previous_hash == b'\x00'*32: 
+                return BlockStatus.INVALID_PREVHASH
+
+            if not block.difficulty_bits == self.initDifficulty:
+                return BlockStatus.INVALID_DIFFICULTY
+
+            if not block.is_hash_valid():
+                return BlockStatus.INVALID_POW
+
+            return BlockStatus.VALID
+
+        if not block.previous_hash == reference_chain[-1].hash_sha256():
+            return BlockStatus.INVALID_PREVHASH
+
+        if not block.difficulty_bits == self.difficulty:
+            return BlockStatus.INVALID_DIFFICULTY
+
+        if not block.is_hash_valid():
+            return BlockStatus.INVALID_POW
+
+        return BlockStatus.VALID
 
     def add_block(self, newBlock: Block) -> BlockStatus:
         '''
@@ -31,23 +75,36 @@ class Chain:
             BlockStatus: Status enum, indicates possible errors
 
         '''
-
-        prevhash = self.get_tophash()
-
-        if not newBlock.previous_hash == prevhash:
-            return BlockStatus.INVALID_PREVHASH
         
-        if not newBlock.difficulty_bits == self.difficulty:
-            return BlockStatus.INVALID_DIFFICULTY
+        if self.forks is not None:
+            forkblock: ForkBlock | None = self.forks.get_block_by_hash(newBlock.previous_hash)
+        else:
+            forkblock = None
 
-        if not newBlock.is_hash_valid():
-            return BlockStatus.INVALID_POW
+        temp_chain_route: List[Block] = []
 
-        self.blocks.append(newBlock)
-
-        return BlockStatus.VALID
+        if forkblock is not None:
+            
+            temp_chain_route = forkblock.get_block_route()
         
-    def get_current_difficulty(self) -> int:
+        validity = self.is_block_valid(newBlock, additional_chain = temp_chain_route)
+
+        if validity == BlockStatus.VALID:
+            if newBlock.previous_hash == b'\x00' * 32 and forkblock is None:
+                self.forks = ForkBlock(None, newBlock)
+                self.forks.hash_cache[newBlock.hash_sha256()] = self.forks
+
+            else:
+                if forkblock is None:
+                    print('wtf?')
+                    return BlockStatus.INVALID_ERROR 
+
+                fb_instance = forkblock.append_block(newBlock)
+                self.forks.hash_cache[newBlock.hash_sha256()] = fb_instance
+
+        return validity
+        
+    def get_top_difficulty(self) -> int:
         '''
         Return the current difficulty bits of the chain
 
@@ -60,13 +117,25 @@ class Chain:
     def get_tophash(self) -> bytes:
         '''
         Return the current top hash or zero-hash if the chain is empty
+        Note: By top hash i mean the one of the block in the longest fork chain
 
         Return:
             bytes: 32 byte hash digest
 
         '''
+        
+        # This is horrendously inefficient, needs caching of the top hash when the block
+        # is added
 
-        return self.blocks[-1].hash_sha256() if len(self.blocks) > 0 else b'\x00'*32
+        if self.forks is None:
+            return self.blocks[-1].hash_sha256() if len(self.blocks) > 0 else b'\x00'*32
+        
+        current: ForkBlock = self.forks 
+
+        while not len(current.next) == 0:
+            current = current.get_tallest_subtree()
+
+        return current.block.hash_sha256()
 
 class ForkBlock:
     '''
@@ -92,7 +161,7 @@ class ForkBlock:
         # This is only changed for the root node
         self.hash_cache: Mapping[bytes, ForkBlock] = {}
     
-    def append_block(self, new_block: Block) -> None:
+    def append_block(self, new_block: Block):
         '''
         Create a new ForkBlock and add it to the next List
         ! DOES NO VALIDATION, BLOCK MUST BE VALIDATED INDIVIDUALLY
@@ -100,6 +169,18 @@ class ForkBlock:
 
         new_fb: ForkBlock = ForkBlock(self, new_block)
         self.next.append(new_fb)
+
+        return new_fb
+    
+    def block_hash_exists(self, block_hash: bytes) -> bool:
+        '''
+        Given a Block's hash, check if it exists in the hash cache of the fork tree
+
+        Return:
+            bool: Existance of the block
+        '''
+
+        return block_hash in self.hash_cache
 
     def get_block_by_hash(self, block_hash: bytes):
         '''
@@ -109,11 +190,36 @@ class ForkBlock:
         Return:
             ForkBlock: Corresponding fork block
         '''
+        
+        #print(self.hash_cache)
+        #print(block_hash)
 
         if block_hash not in self.hash_cache:
             return None
 
         return self.hash_cache[block_hash]
+    
+    def get_block_route(self) -> List[Block]:
+        '''
+        Return the list of Blocks forming a path to this node in the fork tree
+
+        Return:
+            List[Block]: List of blocks in the path
+        '''
+
+        blocks: List[Block] = []
+        current: ForkBlock = self
+        
+        while current is not None:
+            blocks.append(current.block)
+            
+            current = current.parent
+        
+        blocks.reverse()
+
+        return blocks
+
+        
 
     def get_children_count(self) -> int:
         '''
@@ -185,11 +291,11 @@ class ForkBlock:
 
         return cur
 
-    def _display(self, level: int = 0, prefix: str = 'Root-> '):
+    def _display(self, level: int = 0, prefix: str = 'Root->'):
 
         print( ('\t'*level) + prefix, f'0x{hexlify(self.block.hash_sha256()).decode()}')
 
         for i, blk in enumerate(self.next):
 
-            blk._display(level = level + 1, prefix = f'|___{i}-> ')
+            blk._display(level = level + 1, prefix = f'|___{i}->')
 

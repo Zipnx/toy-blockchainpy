@@ -19,7 +19,7 @@ def main():
     for i in range(8):
         print(f'{f" Block #{i} ":=^20}')
 
-        blk = Block(chain.get_tophash(), int(time.time()), chain.get_current_difficulty(), b'', [])
+        blk = Block(chain.get_tophash(), int(time.time()), chain.get_top_difficulty(), b'', [])
 
         mine_block(blk)
         
@@ -28,6 +28,9 @@ def main():
         print('Add block result:', res)
 
         print(json.dumps(blk.to_json(), indent = 4))
+
+        if chain.forks is not None:
+            chain.forks._display()
 
     
 

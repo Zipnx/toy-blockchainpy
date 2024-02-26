@@ -40,8 +40,10 @@ You could also add it permanently but imma leave that up to you
 Will add more stuff when i got time (TXs & UTXOs, maybe a proper chain)
 
 ## TODO:
-- [ ] Forking of the chain
+- [x] Forking of the chain
 - [x] Initialize object from JSON
 - [x] Transactions
+- [ ] Major cleanup and documentation of code 
+- [ ] Merging fork into chain
 - [ ] Basic UTXO Implementation
 - [ ] An RPC (possibly web based to be clearer)
