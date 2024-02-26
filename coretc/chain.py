@@ -1,4 +1,5 @@
 
+from enum import nonmember
 from typing import List, Mapping, Type
 
 from coretc.blocks import Block
@@ -6,6 +7,7 @@ from coretc.status import BlockStatus
 from coretc.utils.list_utils import CombinedList
 
 from binascii import hexlify
+import json, time
 
 class Chain:
     '''
@@ -32,12 +34,10 @@ class Chain:
             bool: Block validity
         '''
         
+        # TODO: Check if the block is a duplicate (check the .next of the forkblock)
         # TODO: Check TXs, for now let's just get this working
         # TODO: Difficulty changes depending on the additional chain, also the UTXO set (to be implemented)
         
-        print(len(additional_chain))
-        print(additional_chain)
-
         reference_chain: CombinedList = CombinedList(self.blocks, additional_chain)
 
         if len(reference_chain) == 0:
@@ -76,22 +76,31 @@ class Chain:
 
         '''
         
+        ### Check if there even is a fork (will happen if the chain is empty, probably)
         if self.forks is not None:
             forkblock: ForkBlock | None = self.forks.get_block_by_hash(newBlock.previous_hash)
         else:
             forkblock = None
+        
+        ### If the selected fork block whose hash is this block's previous hash,
+        ### the chain route is the list of blocks in order from the tree root to the forkblock
 
         temp_chain_route: List[Block] = []
-
+        
         if forkblock is not None:
             
             temp_chain_route = forkblock.get_block_route()
         
         validity = self.is_block_valid(newBlock, additional_chain = temp_chain_route)
+        
+        ### If the block is valid it will either be added as the new fork tree root 
+        ### (if it's the first block) or it gets added to the tree
 
         if validity == BlockStatus.VALID:
             if newBlock.previous_hash == b'\x00' * 32 and forkblock is None:
                 self.forks = ForkBlock(None, newBlock)
+
+                # i hate myself i hate myself i hate myself
                 self.forks.hash_cache[newBlock.hash_sha256()] = self.forks
 
             else:
@@ -101,9 +110,48 @@ class Chain:
 
                 fb_instance = forkblock.append_block(newBlock)
                 self.forks.hash_cache[newBlock.hash_sha256()] = fb_instance
+            
+            merged = self.attempt_merge()
+
+            print(f'Merged {merged} blocks.')
 
         return validity
+    
+    def attempt_merge(self) -> int:
+        '''
+        Attempt to merge some blocks from the fork tree over to the list of permanently added
+        blocks
+
+        Return:
+            int: Count of blocks merged over
+        '''
+
+        # TODO: If the tree's first nodes all have only 1 child node merge them earlier
+        # TODO: Again, terrible inefficiencies, can be fixed with some caching
+
+        if self.forks is None: return 0
         
+        tree_height = self.forks.get_tree_height()
+        current: ForkBlock = self.forks
+        mergers = 0
+
+        if tree_height < 5: return 0
+        
+        while tree_height > 3 and current is not None:
+            if current.is_node_balanced(): break 
+            
+            self.blocks.append(current.block)
+            mergers += 1
+            current = current.get_tallest_subtree()
+            tree_height -= 1
+        
+        self.forks = current
+        self.forks.regenerate_cache() # Performance hit
+
+        return mergers
+
+
+
     def get_top_difficulty(self) -> int:
         '''
         Return the current difficulty bits of the chain
@@ -258,6 +306,7 @@ class ForkBlock:
         '''
 
         if len(self.next) == 0: return True
+        if len(self.next) == 1: return False
 
         cmp_height = self.next[0].get_tree_height()
 
@@ -290,6 +339,28 @@ class ForkBlock:
                 cur_size = size
 
         return cur
+    
+    def regenerate_cache(self, start: bool = True) -> dict:
+        '''
+        Create the hash_cache dict 
+        Will improve in the future
+        '''
+
+        cache = {
+            self.block.hash_sha256(): self
+        }
+
+        for blk in self.next:
+            cache.update(blk.regenerate_cache(start = False))
+
+        if start:
+            self.hash_cache.clear()
+            self.hash_cache = cache
+
+        return cache
+        
+        
+
 
     def _display(self, level: int = 0, prefix: str = 'Root->'):
 
