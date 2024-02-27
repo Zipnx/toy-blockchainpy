@@ -3,8 +3,11 @@ from enum import nonmember
 from typing import List, Mapping, Type
 
 from coretc.blocks import Block
+from coretc.utxo import UTXO
 from coretc.status import BlockStatus
 from coretc.utils.list_utils import CombinedList
+from coretc.settings import ChainSettings
+from coretc.utxoset import UTXOSet
 
 from binascii import hexlify
 import json, time
@@ -15,16 +18,24 @@ class Chain:
     Handles the addding of new blocks & verification
     '''
 
-    def __init__(self, initDifficulty: int = 0x200000FF) -> None:
+    def __init__(self, settings: ChainSettings) -> None:
         '''
         Initialize a new chain
         '''
         
-        self.initDifficulty = initDifficulty
-        self.difficulty = initDifficulty
+        self.opts = settings
+
+        self.initDifficulty = settings.initial_difficulty
+        self.difficulty = settings.initial_difficulty
         self.blocks: List[Block] = [] 
 
         self.forks: ForkBlock | None = None
+
+        self.utxo_set: UTXOSet = UTXOSet(self.opts.utxo_set_path)
+        
+        # TODO: Do checks here
+        self.utxo_set.load_utxos()
+
     
     def is_block_valid(self, block: Block, additional_chain: List[Block] = []) -> BlockStatus:
         '''
@@ -219,6 +230,9 @@ class ForkBlock:
         self.parent: ForkBlock = parent
         self.block:  Block = blk
         self.next:   List[ForkBlock] = []
+        
+        self.utxos_added: List[UTXO] = []
+        self.utxos_used:  List[UTXO] = []
 
         # Note: need to do height recalculation as well as hash cache recalculation 
         self.height: int = 0 # The height of the subtree with this ForkBlock as it's root
