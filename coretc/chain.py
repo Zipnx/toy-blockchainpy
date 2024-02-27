@@ -126,17 +126,25 @@ class Chain:
             int: Count of blocks merged over
         '''
 
-        # TODO: If the tree's first nodes all have only 1 child node merge them earlier
         # TODO: Again, terrible inefficiencies, can be fixed with some caching
 
         if self.forks is None: return 0
         
         tree_height = self.forks.get_tree_height()
+        linear_height = self.forks.get_linear_count()
         current: ForkBlock = self.forks
         mergers = 0
 
         if tree_height < 5: return 0
         
+        if linear_height >= 3:
+            for _ in range(linear_height - 1):
+                self.forks = self.forks.next[0]
+            
+            self.forks.regenerate_heights()
+            self.forks.regenerate_cache()
+            return linear_height - 1
+
         while tree_height > 3 and current is not None:
             if current.is_node_balanced(): break 
             
@@ -146,6 +154,7 @@ class Chain:
             tree_height -= 1
         
         self.forks = current
+        self.forks.regenerate_heights()
         self.forks.regenerate_cache() # Performance hit
 
         return mergers
@@ -205,17 +214,33 @@ class ForkBlock:
         self.parent: ForkBlock = parent
         self.block:  Block = blk
         self.next:   List[ForkBlock] = []
-        
+
+        # Note: need to do height recalculation as well as hash cache recalculation 
+        self.height: int = 0 # The height of the subtree with this ForkBlock as it's root
+
         # This is only changed for the root node
         self.hash_cache: Mapping[bytes, ForkBlock] = {}
     
     def append_block(self, new_block: Block):
         '''
-        Create a new ForkBlock and add it to the next List
+        Create a new ForkBlock and add it to the next List, returns a reference to the new object
         ! DOES NO VALIDATION, BLOCK MUST BE VALIDATED INDIVIDUALLY
+        
+        Return:
+            ForkBlock: Reference to the new object
         '''
 
         new_fb: ForkBlock = ForkBlock(self, new_block)
+
+        if len(self.next) == 0:
+            
+            cur: ForkBlock = self
+            
+            while cur is not None:
+                cur.height += 1
+                cur = cur.parent
+    
+
         self.next.append(new_fb)
 
         return new_fb
@@ -247,6 +272,23 @@ class ForkBlock:
 
         return self.hash_cache[block_hash]
     
+    def get_linear_count(self) -> int:
+        '''
+        Get a count for tree levels that are "linear", ie only have one element in the .next list
+
+        Return:
+            int: Count of linear levels
+        '''
+
+        current: ForkBlock = self
+        linear_count: int = 0
+
+        while (len(current.next) == 1):
+            linear_count += 1
+            current = current.next[0]
+
+        return linear_count
+
     def get_block_route(self) -> List[Block]:
         '''
         Return the list of Blocks forming a path to this node in the fork tree
@@ -293,8 +335,9 @@ class ForkBlock:
         '''
         
         if len(self.next) == 0: return 1
-
-        return max( [ blk.get_tree_height() for blk in self.next ] ) + 1
+        
+        return self.height
+        #return max( [ blk.get_tree_height() for blk in self.next ] ) + 1
     
     def is_node_balanced(self) -> bool:
         '''
@@ -354,12 +397,25 @@ class ForkBlock:
             cache.update(blk.regenerate_cache(start = False))
 
         if start:
-            self.hash_cache.clear()
+            del self.hash_cache
             self.hash_cache = cache
 
         return cache
         
-        
+    def regenerate_heights(self) -> int:
+        '''
+        Recursive function that set's every forkblock's height
+
+        Return:
+            int: The whole subtree's height
+        '''
+
+        if len(self.next) == 0:
+            self.height = 1
+            return 1
+
+        self.height = max( [blk.regenerate_heights() for blk in self.next] )
+        return self.height
 
 
     def _display(self, level: int = 0, prefix: str = 'Root->'):

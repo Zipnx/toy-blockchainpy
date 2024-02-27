@@ -7,14 +7,14 @@ class CombinedList:
     also slices are a bit fucky so undefined behaviour when usin them is a near certainty
     '''
 
-    def __init__(self, first: List[object], second: List[object]):
+    def __init__(self, first: List, second: List):
         
         self.first = first
         self.second = second
 
         self.length = len(first) + len(second)
 
-    def __getitem__(self, idx: int | slice) -> object:
+    def __getitem__(self, idx: int | slice):
         '''
         Return the item specified by the index into both lists
 
