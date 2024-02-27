@@ -135,7 +135,7 @@ class Chain:
         current: ForkBlock = self.forks
         mergers = 0
 
-        if tree_height < 5: return 0
+        if tree_height <= 6: return 0
         
         if linear_height >= 3:
             for _ in range(linear_height - 1):
@@ -145,12 +145,17 @@ class Chain:
             self.forks.regenerate_cache()
             return linear_height - 1
 
-        while tree_height > 3 and current is not None:
+        while tree_height >= 3:
             if current.is_node_balanced(): break 
             
             self.blocks.append(current.block)
             mergers += 1
             current = current.get_tallest_subtree()
+            
+            if current is None:
+                print('???')
+                break
+
             tree_height -= 1
         
         self.forks = current

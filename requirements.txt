@@ -1,2 +1,5 @@
+bson==0.5.10
 pycryptodome==3.20.0
 pycryptodomex==3.20.0
+python-dateutil==2.8.2
+six==1.16.0
