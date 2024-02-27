@@ -355,7 +355,7 @@ class ForkBlock:
         
         if len(self.next) == 0: return 1
         
-        return self.height
+        return self.height + 1
         #return max( [ blk.get_tree_height() for blk in self.next ] ) + 1
     
     def is_node_balanced(self) -> bool:

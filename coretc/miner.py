@@ -3,7 +3,7 @@ from coretc.blocks import Block
 
 import time, os, struct
 
-def mine_block(blk: Block, verbose: bool = False) -> None:
+def mine_block(blk: Block, verbose: bool = False) -> Block:
     '''
     Mine a block. Brute force the nonce until the hash is valid
 
@@ -11,7 +11,7 @@ def mine_block(blk: Block, verbose: bool = False) -> None:
         blk (Block): The block to be mined
 
     Returns:
-        None
+        Block: Reference to the block object
 
     '''
 
@@ -28,4 +28,4 @@ def mine_block(blk: Block, verbose: bool = False) -> None:
     if verbose:
         print(f'Block mined. TIME: {time.time() - t0:.3f} CYCLES: {counter}')
 
-
+    return blk

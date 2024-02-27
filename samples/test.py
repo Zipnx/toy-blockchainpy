@@ -10,7 +10,7 @@ from binascii import hexlify
 
 import time, json
 
-from coretc import Chain, Block, BlockStatus, mine_block
+from coretc import Chain, ChainSettings, Block, BlockStatus, mine_block
 
 def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 
@@ -25,7 +25,7 @@ def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 
 def main():
 
-    chain: Chain = Chain()
+    chain: Chain = Chain(ChainSettings())
     prev: Block = None
 
     for i in range(16):
