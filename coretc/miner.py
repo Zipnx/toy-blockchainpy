@@ -4,7 +4,7 @@ from coretc.blocks import Block
 import time, os, struct
 import logging
 
-logger = logging.getLogger('core-tc')
+logger = logging.getLogger('tc-core')
 
 def mine_block(blk: Block, verbose: bool = False) -> Block:
     '''
