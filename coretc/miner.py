@@ -2,6 +2,9 @@
 from coretc.blocks import Block
 
 import time, os, struct
+import logging
+
+logger = logging.getLogger('core-tc')
 
 def mine_block(blk: Block, verbose: bool = False) -> Block:
     '''
@@ -26,6 +29,6 @@ def mine_block(blk: Block, verbose: bool = False) -> Block:
         counter += 1
     
     if verbose:
-        print(f'Block mined. TIME: {time.time() - t0:.3f} CYCLES: {counter}')
+        logger.debug(f'Block mined. TIME: {time.time() - t0:.3f} CYCLES: {counter}')
 
     return blk

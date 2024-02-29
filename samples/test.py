@@ -10,6 +10,7 @@ from binascii import hexlify
 
 import time, json
 
+from rich import print_json
 from coretc import Chain, ChainSettings, Block, BlockStatus, mine_block
 
 def sample_block(bc: Chain, prev: bytes = b'') -> Block:
@@ -25,31 +26,25 @@ def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 
 def main():
 
-    chain: Chain = Chain(ChainSettings())
-    prev: Block = None
+    chain: Chain = Chain(ChainSettings(initial_difficulty = 0x2000FFFF))
 
     for i in range(16):
-        print(f'{f" Block #{i} ":=^20}')
+        #print(f'{f" Block #{i} ":=^20}')
 
         newblock = sample_block(chain)
 
         res = chain.add_block(newblock)
         
-        print(f'Result: {res}')
-        print(json.dumps(newblock.to_json(), indent = 4))
-        
+        print_json(data = newblock.to_json())
+
         if not res == BlockStatus.VALID: break 
 
-        print(f'{"="*30}')
+    idk = sample_block(chain, prev = chain.forks.next[0].next[0].block.hash_sha256())
 
-        if chain.forks is not None:
-            chain.forks._display()
+    chain.forks.next[0].next[0].append_block(idk)
+    
 
-        print(f'{"="*30}')
-
-
-
-
+    #chain.forks._display()
 
 
 if __name__ == '__main__':

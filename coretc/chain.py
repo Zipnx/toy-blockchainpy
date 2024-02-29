@@ -12,6 +12,16 @@ from coretc.utxoset import UTXOSet
 from binascii import hexlify
 import json, time
 
+import logging
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.tree import Tree
+
+logger = logging.getLogger('core-tc')
+
+# Possibly split the logger into further submodules
+
 class Chain:
     '''
     Chain Core Class 
@@ -23,6 +33,8 @@ class Chain:
         Initialize a new chain
         '''
         
+        logger.debug('Initialized new chain')
+
         self.opts = settings
 
         self.initDifficulty = settings.initial_difficulty
@@ -49,34 +61,47 @@ class Chain:
         # TODO: Check TXs, for now let's just get this working
         # TODO: Difficulty changes depending on the additional chain, also the UTXO set (to be implemented)
         
+        block_hash = block.hash_sha256()
         reference_chain: CombinedList = CombinedList(self.blocks, additional_chain)
+
+        logger.info(f'Checking validity of block: 0x{hexlify(block_hash).decode()}')
 
         if len(reference_chain) == 0:
 
             if not block.previous_hash == b'\x00'*32: 
+                logger.warn('Genesis Block invalid: Incorrect previous hash')
                 return BlockStatus.INVALID_PREVHASH
 
             if not block.difficulty_bits == self.initDifficulty:
+                logger.warn('Genesis Block invalid: Incorrect difficulty level')
                 return BlockStatus.INVALID_DIFFICULTY
 
             if not block.is_hash_valid():
+                logger.warn('Genesis Block invalid: Incorrect PoW hash')
                 return BlockStatus.INVALID_POW
 
+
+            
             return BlockStatus.VALID
 
         if not block.previous_hash == reference_chain[-1].hash_sha256():
+            logger.warn('Block Invalid: Invalid previous hash')
             return BlockStatus.INVALID_PREVHASH
 
         if not block.difficulty_bits == self.difficulty:
+            logger.warn('Block Invalid: Incorrect difficulty level')
             return BlockStatus.INVALID_DIFFICULTY
 
         if not block.is_hash_valid():
+            logger.warn('Block Invalid: Incorrect PoW hash')
             return BlockStatus.INVALID_POW
 
+        logger.debug('Block validated successfully')
         return BlockStatus.VALID
 
     def add_block(self, newBlock: Block) -> BlockStatus:
         '''
+from rich.logging import RichHandler
         Try to add a new block in the current chain
 
         Args:
@@ -104,6 +129,8 @@ class Chain:
         
         validity = self.is_block_valid(newBlock, additional_chain = temp_chain_route)
         
+        logger.debug(f'Validation result: {validity}')
+
         ### If the block is valid it will either be added as the new fork tree root 
         ### (if it's the first block) or it gets added to the tree
 
@@ -121,10 +148,11 @@ class Chain:
 
                 fb_instance = forkblock.append_block(newBlock)
                 self.forks.hash_cache[newBlock.hash_sha256()] = fb_instance
-            
+
             merged = self.attempt_merge()
 
-            print(f'Merged {merged} blocks.')
+            if merged > 0:
+                logger.debug(f'Merged {merged} blocks.')
 
         return validity
     
@@ -148,6 +176,8 @@ class Chain:
 
         if tree_height <= 6: return 0
         
+        logger.info('Merging Blocks from fork tree into the chain')
+
         if linear_height >= 3:
             for _ in range(linear_height - 1):
                 self.forks = self.forks.next[0]
@@ -407,6 +437,9 @@ class ForkBlock:
         Create the hash_cache dict 
         Will improve in the future
         '''
+        
+        if start:
+            logger.info('Regenerating hash cache of fork tree')
 
         cache = {
             self.block.hash_sha256(): self
@@ -421,7 +454,7 @@ class ForkBlock:
 
         return cache
         
-    def regenerate_heights(self) -> int:
+    def regenerate_heights(self, start: bool = True) -> int:
         '''
         Recursive function that set's every forkblock's height
 
@@ -429,19 +462,36 @@ class ForkBlock:
             int: The whole subtree's height
         '''
 
+        if start:
+            logger.info('Recalculating heights in fork tree')
+
         if len(self.next) == 0:
             self.height = 1
             return 1
 
-        self.height = max( [blk.regenerate_heights() for blk in self.next] )
+        self.height = max( [blk.regenerate_heights(start = False) for blk in self.next] )
         return self.height
 
+    def _rich_get_tree(self, tree: Tree | None = None) -> Tree:
+        
+        if tree is None:
+            tree = Tree('Fork tree.')
+        
+        data  = f'Hash: 0x{hexlify(self.block.hash_sha256()).decode()}\n'
+        data += f'Prev: 0x{hexlify(self.block.previous_hash).decode()}\n'
+        data += f'TXs:  {len(self.block.transactions)}'
 
-    def _display(self, level: int = 0, prefix: str = 'Root->'):
+        panel = Panel.fit(data)
+        
+        node = tree.add(panel)
+        
+        for blk in self.next:
+            blk._rich_get_tree(tree = node)
 
-        print( ('\t'*level) + prefix, f'0x{hexlify(self.block.hash_sha256()).decode()}')
+        return node
+        
 
-        for i, blk in enumerate(self.next):
+    def _display(self):
 
-            blk._display(level = level + 1, prefix = f'|___{i}->')
-
+        console = Console()
+        console.print(self._rich_get_tree())

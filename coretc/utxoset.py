@@ -6,6 +6,9 @@ from os.path import isdir as isDirectory
 import bson, json
 
 from coretc.utxo import UTXO
+import logging
+
+logger = logging.getLogger('tc-core')
 
 class UTXOSet:
     def __init__(self, store_file: str):
@@ -23,8 +26,12 @@ class UTXOSet:
         Return:
             bool: Whether the loading was successful
         '''
+        logger.info(f'Loading UTXO set from {self.outfile}')
         
+        self.utxos.clear()
+
         if not fileExists(self.outfile) or isDirectory(self.outfile):
+            logger.error('UTXO Set file not found!')
             return False
         
         with open(self.outfile, 'rb') as f:
@@ -35,6 +42,7 @@ class UTXOSet:
             data = bson.loads(data_raw)
 
         if 'height' not in data or 'outputs' not in data:
+            logger.error('UTXO Set file contains invalid data!')
             return False
 
         if not data['height'].isdigit(): return False
@@ -46,9 +54,12 @@ class UTXOSet:
             utxo_obj = UTXO.from_json(utxo_json)
 
             if utxo_obj is None:
+                logger.error('Error parsing UTXO in file: {utxo_json}')
                 return False
 
             self.utxos.append(utxo_obj)
+        
+        logger.debug(f'Loaded {len(self.utxos)} from {self.outfile}')
 
         return True
     
@@ -77,6 +88,8 @@ class UTXOSet:
         Return:
             bool: Whether the saving was successful
         '''
+        
+        logger.info(f'Saving UTXO set to {self.outfile}')
 
         if isDirectory(self.outfile):
             return False
@@ -88,6 +101,8 @@ class UTXOSet:
             data_raw = bson.dumps(output)
 
             f.write(data_raw)
+            
+        logger.debug(f'Saved {len(self.utxos)} UTXOs to file')
 
         return True
     

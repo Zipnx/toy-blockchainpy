@@ -6,4 +6,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tests import run
 
+import logging
+
+logging.getLogger('core-tc').setLevel(logging.ERROR)
+
 if __name__ == '__main__': run()
