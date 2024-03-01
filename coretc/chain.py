@@ -1,6 +1,5 @@
 
-from enum import nonmember
-from typing import List, Mapping, Type
+from typing import List, Tuple
 
 from coretc.blocks import Block
 from coretc.utxo import UTXO
@@ -48,7 +47,26 @@ class Chain:
         # TODO: Do checks here
         self.utxo_set.load_utxos()
 
-    def validate_transactions(self, block: Block, additional_chain: List[Block] = []) -> BlockStatus:
+    def validate_transactions(self, block: Block, additional_chain: CombinedList) -> BlockStatus:
+         
+        reward_found = False
+        
+        # Utilized to make sure no 2 transactions use the same UTXO
+        utxos_used: List[UTXO] = list()
+
+        for transaction in block.transactions:
+            
+            if len(transaction.inputs) == 0:
+                if reward_found: return BlockStatus.INVALID_TX_MULTIPLE_REWARDS
+                reward_found = True
+
+                # TODO: Check reward amount
+
+            # Check UTXOs and TX Forms
+            # Note: If a TX uses a UTXO created in the same block this will reject it
+
+            # TODO: Will finish when im back shit
+            
 
         return BlockStatus.VALID
 
@@ -71,43 +89,36 @@ class Chain:
         reference_chain: CombinedList = CombinedList(self.blocks, additional_chain)
 
         logger.info(f'Checking validity of block: 0x{hexlify(block_hash).decode()}')
+        
+        ### CHECK THE PREVIOUS HASH ###
 
         if len(reference_chain) == 0:
-
-            if not block.previous_hash == b'\x00'*32: 
-                logger.warn('Genesis Block invalid: Incorrect previous hash')
+            if not block.previous_hash == b'\x00'*32:
                 return BlockStatus.INVALID_PREVHASH
-
-            if not block.difficulty_bits == self.initDifficulty:
-                logger.warn('Genesis Block invalid: Incorrect difficulty level')
-                return BlockStatus.INVALID_DIFFICULTY
-
-            if not block.is_hash_valid():
-                logger.warn('Genesis Block invalid: Incorrect PoW hash')
-                return BlockStatus.INVALID_POW
-
-
-            
-            return BlockStatus.VALID
-
-        if not block.previous_hash == reference_chain[-1].hash_sha256():
-            logger.warn('Block Invalid: Invalid previous hash')
-            return BlockStatus.INVALID_PREVHASH
-
+        else:
+            if not block.previous_hash == reference_chain[-1].hash_sha256():
+                return BlockStatus.INVALID_PREVHASH
+        
+        ### CHECK IF THE DIFFICULTY LEVEL IS VALID ###
         if not block.difficulty_bits == self.difficulty:
             logger.warn('Block Invalid: Incorrect difficulty level')
             return BlockStatus.INVALID_DIFFICULTY
-
+        
+        ### CHECK IF THE BLOCK HASH IS VALID ###
         if not block.is_hash_valid():
             logger.warn('Block Invalid: Incorrect PoW hash')
             return BlockStatus.INVALID_POW
 
-        logger.debug('Block validated successfully')
-        return BlockStatus.VALID
+        if (res := self.validate_transactions(block, reference_chain)) == BlockStatus.VALID:
+            logger.debug('Block and TXs validated successfully')
+        else:
+            logger.warn('Block TXs invalid')
+
+
+        return res
 
     def add_block(self, newBlock: Block) -> BlockStatus:
         '''
-from rich.logging import RichHandler
         Try to add a new block in the current chain
 
         Args:
@@ -159,6 +170,7 @@ from rich.logging import RichHandler
 
             if merged > 0:
                 logger.debug(f'Merged {merged} blocks.')
+        
 
         return validity
     
@@ -295,6 +307,16 @@ class ForkBlock:
                 cur.height += 1
                 cur = cur.parent
     
+        # Add the UTXO input & outputs for every transaction in the utxo lists
+        # No validation is done here, it is managed seperately
+
+        for transaction in new_block.transactions:
+
+            for utxo in transaction.inputs:
+                self.utxos_used.append(utxo)
+
+            for utxo in transaction.outputs:
+                self.utxos_added.append(utxo)
 
         self.next.append(new_fb)
 
@@ -438,6 +460,41 @@ class ForkBlock:
 
         return cur
     
+    def get_fork_utxoset(self) -> Tuple[List[UTXO], List[UTXO]]:
+        '''
+        Iterates to it's parent until None and returns a final list of 
+        UTXOs in the current fork that have been used and created in the form of a Tuple
+        (Note: This is a bit dirty but it should work)
+
+        Return:
+            Tuple[List[UTXO], List[UTXO]]: 2 Lists one of the UTXOs used and one with the ones added
+        '''
+        
+        # TODO: High possibility of a bug being here, do unit tests
+
+        result_used:  List[UTXO] = list()
+        result_added: List[UTXO] = list()
+
+        cur: ForkBlock = self
+
+        while cur is not None:
+            
+            for used in self.utxos_used:
+                result_used.append(used)
+
+            for added in self.utxos_added:
+
+                # In case where a UTXO is created inside the fork and used
+                if added in result_used:
+                    continue
+
+                result_added.append(added)
+
+
+            cur = cur.parent
+        
+        return (result_used, result_added)
+
     def regenerate_cache(self, start: bool = True) -> dict:
         '''
         Create the hash_cache dict 
@@ -485,7 +542,7 @@ class ForkBlock:
         
         data  = f'Hash: 0x{hexlify(self.block.hash_sha256()).decode()}\n'
         data += f'Prev: 0x{hexlify(self.block.previous_hash).decode()}\n'
-        data += f'TXs:  {len(self.block.transactions)}'
+        data += f'TXs:  {len(self.block.transactions)} | USED UTXOS: {len(self.utxos_used)} | NEW UTXOS: {len(self.utxos_added)}'
 
         panel = Panel.fit(data)
         
