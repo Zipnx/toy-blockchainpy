@@ -287,6 +287,11 @@ class ForkBlock:
 
         # This is only changed for the root node
         self.hash_cache: dict[bytes, ForkBlock] = {}
+
+        # Store used and new utxos from the block
+        for transaction in self.block.transactions:
+            self.utxos_used.extend(transaction.inputs)
+            self.utxos_added.extend(transaction.outputs)
     
     def append_block(self, new_block: Block):
         '''
@@ -296,9 +301,11 @@ class ForkBlock:
         Return:
             ForkBlock: Reference to the new object
         '''
-
+        
+        # Create the new forkblock object to use
         new_fb: ForkBlock = ForkBlock(self, new_block)
-
+        
+        # Increment the height of all parent nodes if this is now the heighest leaf node of the subtree
         if len(self.next) == 0:
             
             cur: ForkBlock = self
@@ -307,16 +314,6 @@ class ForkBlock:
                 cur.height += 1
                 cur = cur.parent
     
-        # Add the UTXO input & outputs for every transaction in the utxo lists
-        # No validation is done here, it is managed seperately
-
-        for transaction in new_block.transactions:
-
-            for utxo in transaction.inputs:
-                self.utxos_used.append(utxo)
-
-            for utxo in transaction.outputs:
-                self.utxos_added.append(utxo)
 
         self.next.append(new_fb)
 
@@ -446,6 +443,7 @@ class ForkBlock:
             ForkBlock: Subtree root node
         '''
         
+        # Not actually as inefficient since i changed the height to be stored on the forkblocks
         cur = None
         cur_size: int  = -1
 
