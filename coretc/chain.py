@@ -34,7 +34,7 @@ class Chain:
         '''
         
         logger.debug('Initialized new chain')
-
+        
         self.opts = settings
 
         self.initDifficulty = settings.initial_difficulty
@@ -48,7 +48,10 @@ class Chain:
         # TODO: Do checks here
         self.utxo_set.load_utxos()
 
-    
+    def validate_transactions(self, block: Block, additional_chain: List[Block] = []) -> BlockStatus:
+
+        return BlockStatus.VALID
+
     def is_block_valid(self, block: Block, additional_chain: List[Block] = []) -> BlockStatus:
         '''
         Given a block, check if it's valid. Also verifies in a side chain
@@ -57,11 +60,14 @@ class Chain:
             bool: Block validity
         '''
         
-        # TODO: Check if the block is a duplicate (check the .next of the forkblock)
         # TODO: Check TXs, for now let's just get this working
         # TODO: Difficulty changes depending on the additional chain, also the UTXO set (to be implemented)
         
         block_hash = block.hash_sha256()
+
+        if self.forks is not None and block_hash in self.forks.hash_cache:
+            return BlockStatus.INVALID_DUPLICATE
+
         reference_chain: CombinedList = CombinedList(self.blocks, additional_chain)
 
         logger.info(f'Checking validity of block: 0x{hexlify(block_hash).decode()}')
@@ -142,7 +148,7 @@ from rich.logging import RichHandler
                 self.forks.hash_cache[newBlock.hash_sha256()] = self.forks
 
             else:
-                if forkblock is None:
+                if forkblock is None or self.forks is None:
                     print('wtf?')
                     return BlockStatus.INVALID_ERROR 
 
@@ -268,7 +274,7 @@ class ForkBlock:
         self.height: int = 0 # The height of the subtree with this ForkBlock as it's root
 
         # This is only changed for the root node
-        self.hash_cache: Mapping[bytes, ForkBlock] = {}
+        self.hash_cache: dict[bytes, ForkBlock] = {}
     
     def append_block(self, new_block: Block):
         '''

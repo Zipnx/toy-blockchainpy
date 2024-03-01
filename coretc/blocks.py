@@ -1,4 +1,6 @@
 
+from typing import Type
+
 from binascii import hexlify, unhexlify
 from dataclasses import dataclass
 from hashlib import sha256
@@ -6,6 +8,7 @@ import json
 from Crypto.Util.number import long_to_bytes
 
 from coretc.difficulty import hashDifficulty, adjustDifficulty, getDifficultyTarget, checkDifficulty
+from coretc.transaction import TX
 
 @dataclass(init = True)
 class Block:
@@ -14,7 +17,7 @@ class Block:
     difficulty_bits: int
     nonce: bytes
 
-    transactions: list
+    transactions: list[TX]
 
     # TODO: Also need to cache some stuff for TXs
 
@@ -45,7 +48,7 @@ class Block:
 
         return checkDifficulty(self.hash_sha256(), self.difficulty_bits)
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict[str, str | int]:
         '''
         Convert the Block object into json
 
@@ -56,7 +59,7 @@ class Block:
             
         # Todo: Add TXs
 
-        result: dict = {
+        result: dict[str, str | int] = {
             'prev': f'0x{hexlify(self.previous_hash).decode()}',
             'hash': f'0x{hexlify(self.hash_sha256()).decode()}',
             'timestamp': self.timestamp,
@@ -67,7 +70,7 @@ class Block:
         return result
     
     @staticmethod
-    def from_json(json_data: dict):
+    def from_json(json_data: dict) -> object | None:
         '''
         Initialize a block object from JSON
 

@@ -10,7 +10,7 @@ from tests.helpers import create_example_block, create_example_utxo
 
 class TestBlockMining(unittest.TestCase):
 
-    def test_mine_basic(self):
+    def test_mine_basic(self) -> None:
 
         blk: Block = create_example_block()
         blk.difficulty_bits = 0x20000FFF

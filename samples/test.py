@@ -2,14 +2,10 @@
 #!/usr/bin/env python3
 
 # Add the ../ directory to PATH to be able to use coretc
-import os,sys, random
+import os,sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from typing import List
-from binascii import hexlify
-
-import time, json
-
+import time
 from rich import print_json
 from coretc import Chain, ChainSettings, Block, BlockStatus, mine_block
 
@@ -38,13 +34,19 @@ def main():
         print_json(data = newblock.to_json())
 
         if not res == BlockStatus.VALID: break 
+    
+    
+    if chain.forks is None: return
+    if len(chain.forks.hash_cache) < 2: return
 
-    idk = sample_block(chain, prev = chain.forks.next[0].next[0].block.hash_sha256())
+    ref_block_hash = list(chain.forks.hash_cache)[-3]
 
-    chain.forks.next[0].next[0].append_block(idk)
+    idk = sample_block(chain, prev = ref_block_hash)
+
+    chain.add_block(idk)
     
 
-    #chain.forks._display()
+    chain.forks._display()
 
 
 if __name__ == '__main__':

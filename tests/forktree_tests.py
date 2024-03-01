@@ -8,7 +8,7 @@ from tests.helpers import create_example_block, forktree_from_json
 
 class TestForkTree(unittest.TestCase):
 
-    def test_forktree_getheight(self):
+    def test_forktree_getheight(self) -> None:
 
         root = ForkBlock(None, create_example_block())
 
@@ -32,7 +32,7 @@ class TestForkTree(unittest.TestCase):
         self.assertEqual(root.get_tree_height(), 3,
                          "Expected height 3")
 
-    def test_forktree_structure(self):
+    def test_forktree_structure(self) -> None:
 
         root: ForkBlock = forktree_from_json([[],[[]]])
         #print()
@@ -48,7 +48,7 @@ class TestForkTree(unittest.TestCase):
         self.assertEqual(root.get_tree_height(), 2, 'Height should have been lowered to 2')
         self.assertEqual(root.get_tree_height(), 2, 'Child count should be 2')
 
-    def test_forktree_balanced(self):
+    def test_forktree_balanced(self) -> None:
 
         root: ForkBlock = forktree_from_json([])
         
@@ -70,20 +70,24 @@ class TestForkTree(unittest.TestCase):
 
         self.assertFalse(root.is_node_balanced(), 'Should not be balanced')
 
-    def test_forktree_linearity(self):
+    def test_forktree_linearity(self) -> None:
 
         root: ForkBlock = forktree_from_json([[[[[],[]]]]])
 
         self.assertEqual(root.get_linear_count(), 3,
                          'The structure has 3 linear forkblocks')
 
-        root: ForkBlock = forktree_from_json([[],[[[[]]]]])
+        root = forktree_from_json([[],[[[[]]]]])
 
         self.assertEqual(root.get_linear_count(), 0,
                          'Root node is not linear')
 
         # TODO: This also needs tests
         child = root.get_tallest_subtree()
+        
+        self.assertIsNotNone(child)
+        
+        if child is None: return
 
         self.assertEqual(child.get_linear_count(), 3,
                          'Child node exhibits 3 fold linearity')

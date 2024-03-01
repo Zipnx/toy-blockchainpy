@@ -5,7 +5,7 @@ from tests.mining_tests import TestBlockMining
 from tests.misc_tests import TestMisc
 from tests.forktree_tests import TestForkTree
 
-def init_test_suite():
+def init_test_suite() -> unittest.TestSuite:
     suite = unittest.TestSuite()
 
     suite.addTest(unittest.makeSuite(TestJsonConversion))
@@ -18,7 +18,7 @@ def init_test_suite():
     return suite
 
 
-def run():
+def run() -> None:
     runner = unittest.TextTestRunner(verbosity = 2)
     suite = init_test_suite()
 

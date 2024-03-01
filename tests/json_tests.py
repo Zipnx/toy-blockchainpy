@@ -6,13 +6,13 @@ from tests.helpers import create_example_block, create_example_tx, create_exampl
 
 class TestJsonConversion(unittest.TestCase):
 
-    def test_simple_block_json(self):
+    def test_simple_block_json(self) -> None:
          
         blk: Block = create_example_block()
 
         blk_json = blk.to_json()
 
-        blk_copy: Block | None = Block.from_json(blk_json)
+        blk_copy = Block.from_json(blk_json)
 
         self.assertFalse(blk_copy is None, "Error deserializing JSON to Block object")
         
@@ -20,7 +20,7 @@ class TestJsonConversion(unittest.TestCase):
             self.assertEqual(blk.hash_sha256(), blk_copy.hash_sha256(), 
                             "Block and it's copy don't have the same hash")
 
-    def test_simple_tx_json(self):
+    def test_simple_tx_json(self) -> None:
 
         tx: TX = create_example_tx()
         tx.gen_nonce()
@@ -36,7 +36,7 @@ class TestJsonConversion(unittest.TestCase):
             tx_copy.gen_txid()
             self.assertEqual(tx.txid, tx_copy.txid,
                              "TX and it's copy don't have the same transaction ID")
-    def test_simple_utxo_json(self):
+    def test_simple_utxo_json(self) -> None:
 
         utxo: UTXO = create_example_utxo()
         utxo_json = utxo.to_json()
@@ -49,7 +49,7 @@ class TestJsonConversion(unittest.TestCase):
             self.assertEqual(utxo.hash_sha256(), utxo_copy.hash_sha256(),
                              "UTXO and it's copy don't have the same hash")
 
-    def test_tx_with_utxos(self):
+    def test_tx_with_utxos(self) -> None:
 
         tx: TX = create_example_tx()
         

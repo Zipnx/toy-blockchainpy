@@ -67,11 +67,10 @@ class UTXOSet:
         '''
         Get the whole set in JSON format
         '''
-
-        output = {
-            'height': self.currently_scanned_height,
-            'outputs': []
-        }
+        
+        output: dict[str, int | list] = {}
+        output['height'] = self.currently_scanned_height
+        output['outputs'] = list()
 
         for utxo in self.utxos:
 
