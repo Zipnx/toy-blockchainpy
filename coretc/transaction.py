@@ -132,11 +132,14 @@ class TX:
     def set_utxo_indexes(self) -> None:
         '''
         Sets the UTXO indexes in ascending order
+        Invalidates the txid cache
 
         Return:
             None
         '''
         
+        self._txid_cache = b''
+
         for i, utxo in enumerate(self.outputs):
             utxo.index = i
     
