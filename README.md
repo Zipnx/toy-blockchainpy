@@ -40,12 +40,12 @@ You could also add it permanently but imma leave that up to you
 Will add more stuff when i got time (TXs & UTXOs, maybe a proper chain)
 
 ## TODO:
-- [ ] Add logging ffs
+- [x] Add logging ffs
 - [x] Forking of the chain
 - [x] Initialize object from JSON
 - [x] Transactions
 - [ ] Major cleanup and documentation of code 
 - [x] Merging fork into chain
-- [ ] Basic UTXO Implementation
+- [x] Basic UTXO Implementation
 - [ ] An RPC (possibly web based to be clearer)
-- [ ] Unit tests for chain and fork tree
+- [ ] Unit tests UTXO and TX validation

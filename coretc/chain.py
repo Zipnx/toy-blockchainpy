@@ -38,6 +38,7 @@ class Chain:
 
         self.initDifficulty = settings.initial_difficulty
         self.difficulty = settings.initial_difficulty
+        self.blockreward = settings.initial_blockreward
         self.blocks: List[Block] = [] 
 
         self.forks: ForkBlock | None = None
@@ -60,12 +61,22 @@ class Chain:
                 if reward_found: return BlockStatus.INVALID_TX_MULTIPLE_REWARDS
                 reward_found = True
 
-                # TODO: Check reward amount
+                # Check reward amount
+                if transaction.outgoing_funds() > self.get_top_blockreward():
+                    return BlockStatus.INVALID_TX_WRONG_REWARD_AMOUNT
 
             # Check UTXOs and TX Forms
-            # Note: If a TX uses a UTXO created in the same block this will reject it
+            if not transaction.check_inputs():
+                return BlockStatus.INVALID_TX_INPUTS
 
-            # TODO: Will finish when im back shit
+            if not transaction.check_outputs():
+                return BlockStatus.INVALID_TX_OUTPUTS
+
+            # Check if the utxo's are even valid to spend
+            
+
+            # Note: If a TX uses a UTXO created in the same block this will reject it
+            
             
 
         return BlockStatus.VALID
@@ -148,28 +159,29 @@ class Chain:
         
         logger.debug(f'Validation result: {validity}')
 
-        ### If the block is valid it will either be added as the new fork tree root 
-        ### (if it's the first block) or it gets added to the tree
+        
+        if not validity == BlockStatus.VALID:
+            return validity
+        
+        # In the case where a fork is not present, it needs to be created with the new block as the root
+        if newBlock.previous_hash == b'\x00' * 32 and forkblock is None:
+            self.forks = ForkBlock(None, newBlock)
 
-        if validity == BlockStatus.VALID:
-            if newBlock.previous_hash == b'\x00' * 32 and forkblock is None:
-                self.forks = ForkBlock(None, newBlock)
+            # i hate myself i hate myself i hate myself
+            self.forks.hash_cache[newBlock.hash_sha256()] = self.forks
 
-                # i hate myself i hate myself i hate myself
-                self.forks.hash_cache[newBlock.hash_sha256()] = self.forks
+        else:
+            if forkblock is None or self.forks is None:
+                print('wtf?')
+                return BlockStatus.INVALID_ERROR 
 
-            else:
-                if forkblock is None or self.forks is None:
-                    print('wtf?')
-                    return BlockStatus.INVALID_ERROR 
+            fb_instance = forkblock.append_block(newBlock)
+            self.forks.hash_cache[newBlock.hash_sha256()] = fb_instance
 
-                fb_instance = forkblock.append_block(newBlock)
-                self.forks.hash_cache[newBlock.hash_sha256()] = fb_instance
+        merged = self.attempt_merge()
 
-            merged = self.attempt_merge()
-
-            if merged > 0:
-                logger.debug(f'Merged {merged} blocks.')
+        if merged > 0:
+            logger.debug(f'Merged {merged} blocks.')
         
 
         return validity
@@ -224,10 +236,18 @@ class Chain:
         return mergers
 
 
+    def get_top_blockreward(self) -> float:
+        '''
+        Return the current top block reward
+        TODO: Also based on the fork data
+        '''
+
+        return self.blockreward
 
     def get_top_difficulty(self) -> int:
         '''
         Return the current difficulty bits of the chain
+        TODO: Also based on the fork data
 
         Return:
             int: Difficulty bits

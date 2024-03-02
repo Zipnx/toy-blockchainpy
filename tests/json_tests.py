@@ -22,9 +22,7 @@ class TestJsonConversion(unittest.TestCase):
 
     def test_simple_tx_json(self) -> None:
 
-        tx: TX = create_example_tx()
-        tx.gen_nonce()
-        tx.gen_txid()
+        tx: TX = create_example_tx().make()
 
         tx_json = tx.to_json()
 
@@ -33,8 +31,7 @@ class TestJsonConversion(unittest.TestCase):
         self.assertFalse(tx_copy is None, "Error deserializing JSON to TX object")
 
         if tx_copy is not None:
-            tx_copy.gen_txid()
-            self.assertEqual(tx.txid, tx_copy.txid,
+            self.assertEqual(tx.hash_sha256(), tx_copy.hash_sha256(),
                              "TX and it's copy don't have the same transaction ID")
     def test_simple_utxo_json(self) -> None:
 
@@ -66,8 +63,7 @@ class TestJsonConversion(unittest.TestCase):
         tx.inputs  += [a, b]
         tx.outputs += [c]
 
-        tx.gen_nonce()
-        tx.gen_txid()
+        tx.make()
 
         tx_json = tx.to_json()
 
@@ -77,9 +73,7 @@ class TestJsonConversion(unittest.TestCase):
         
         if tx_copy is None: return
 
-        
-        tx_copy.gen_txid()
-        self.assertEqual(tx.txid, tx_copy.txid, 
+        self.assertEqual(tx.hash_sha256(), tx_copy.hash_sha256(), 
                         "Transaction and it's copy have different transaction IDs")
 
         self.assertEqual(len(tx.inputs), len(tx_copy.inputs),

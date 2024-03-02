@@ -23,6 +23,7 @@ class UTXO:
     def hash_sha256(self) -> bytes:
         '''
         Hash the UTXO object using SHA-256
+        WARNING: Does no checks on the parameters themselves
 
         Return:
             bytes: 32 byte hash digest

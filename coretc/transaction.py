@@ -3,10 +3,12 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 from typing import List
 from dataclasses import dataclass
-import os
+import os, logging
 
 from coretc.utxo import UTXO
 from coretc.crypto import data_sign, data_verify
+
+logger = logging.getLogger('tc-core')
 
 @dataclass(init = True)
 class TX:
@@ -14,7 +16,8 @@ class TX:
     outputs: List[UTXO]
 
     nonce: bytes = b''
-    txid: bytes = b''
+
+    txid_cache: bytes = b'' # Used so the object is not hashed needlessly
 
     def hash_sha256(self) -> bytes:
         '''
@@ -51,7 +54,7 @@ class TX:
             'inputs': in_json,
             'outputs': out_json,
             'nonce': hexlify(self.nonce).decode(),
-            'txid': f'0x{hexlify(self.txid).decode()}'
+            'txid': f'0x{hexlify(self.hash_sha256()).decode()}'
         }
 
     @staticmethod
@@ -103,12 +106,17 @@ class TX:
 
             res_out.append(obj)
 
-        return TX(
+        obj = TX(
             inputs      = res_ins,
             outputs     = res_out,
-            nonce       = unhexlify(json_data['nonce']),
-            txid        = unhexlify(json_data['txid'][2:])
+            nonce       = unhexlify(json_data['nonce'])
         )
+        
+        if not json_data['txid'] == f'0x{hexlify(obj.hash_sha256()).decode()}':
+            logger.error('Deserialized TX does not have the same transaction ID')
+            return None
+
+        return obj
 
     def set_utxo_indexes(self) -> None:
         '''
@@ -120,7 +128,55 @@ class TX:
         
         for i, utxo in enumerate(self.outputs):
             utxo.index = i
+    
+    def ingoing_funds(self) -> float:
+        '''
+        Get sum of all UTXO input fund amounts
 
+        Return:
+            float: Total in-going funds
+        '''
+
+        funds: float = 0.
+
+        for utxo in self.inputs:
+            funds += utxo.amount
+
+        return funds
+
+    def outgoing_funds(self) -> float:
+        '''
+        Get the sum of all UTXO output fund amounts
+
+        Return:
+            float: Total out-going funds
+        '''
+
+        funds: float = 0.
+
+        for utxo in self.outputs:
+            funds += utxo.amount
+
+        return funds
+
+    def check_inputs(self) -> bool:
+        '''
+        Check the utxo input validities also check the UTXO input 
+        signatures to unlock for spending. Note this only checks for the case
+        where all the inputs are from 1 address
+
+        Return:
+            bool: Whether the inputs are proper
+        '''
+
+        for utxo_input in self.inputs:
+
+            if not utxo_input.is_valid_input(): return False
+            
+            if not utxo_input.unlock_spend(self.outputs): return False
+
+        return True
+    
     def check_outputs(self) -> bool:
         '''
         Check if the UTXO outputs are properly set up
@@ -140,20 +196,6 @@ class TX:
             if not utxo.index == i: return False 
 
         return True
-
-    def gen_txid(self) -> bytes:
-        '''
-        Sets the transaction id to the current hash of the transaction 
-        and at the same time returns it as a list of bytes
-
-        This is necessary because the txid must be also set to the utxo outputs
-
-        Return:
-            bytes: The transaction id
-        '''
-
-        self.txid = self.hash_sha256()
-        return self.txid
     
     def gen_nonce(self) -> bytes:
         '''
@@ -176,27 +218,19 @@ class TX:
 
         self.set_utxo_indexes()
         self.gen_nonce()
-        self.gen_txid()
 
         return self
-
-    def check_inputs(self) -> bool:
+    
+    def is_valid(self) -> bool:
         '''
-        Check the utxo input validities also check the UTXO input 
-        signatures to unlock for spending. Note this only checks for the case
-        where all the inputs are from 1 address
-
-        Return:
-            bool: Whether the inputs are proper
+        Check if the nonce and txid is set
+        NOTE: UTXOs are check using check_inputs & check_outputs
         '''
 
-        for utxo_input in self.inputs:
-
-            if not utxo_input.is_valid_input(): return False
-            
-            if not utxo_input.unlock_spend(self.outputs): return False
-
+        if self.nonce == b'': return False
+        
         return True
+
 
 def hash_utxo_list(lst: List[UTXO]) -> bytes:
     '''
