@@ -2,7 +2,7 @@
 from binascii import hexlify, unhexlify
 from hashlib import sha256
 from typing import List
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os, logging
 
 from coretc.utxo import UTXO
@@ -12,12 +12,11 @@ logger = logging.getLogger('tc-core')
 
 @dataclass(init = True)
 class TX:
-    inputs:  List[UTXO]
-    outputs: List[UTXO]
+    inputs:  List[UTXO] = field(default_factory=list)
+    outputs: List[UTXO] = field(default_factory=list)
 
-    nonce: bytes = b''
-
-    txid_cache: bytes = b'' # Used so the object is not hashed needlessly
+    _nonce: bytes = b''
+    _txid_cache: bytes = b'' # Used so the object is not hashed needlessly
 
     def hash_sha256(self) -> bytes:
         '''
@@ -29,9 +28,21 @@ class TX:
 
         return sha256(
             hash_utxo_list(self.inputs + self.outputs) +
-            self.nonce
+            self._nonce
         ).digest()
     
+    def get_txid(self) -> bytes:
+        '''
+        Gets the transaction's current transaction ID
+
+        Return:
+            bytes: The 32 byte hash
+        '''
+
+        if self._txid_cache: return self._txid_cache
+
+        return self.hash_sha256()
+
     def to_json(self) -> dict:
         '''
         Serialize the TX into a JSON object
@@ -53,8 +64,8 @@ class TX:
         return {
             'inputs': in_json,
             'outputs': out_json,
-            'nonce': hexlify(self.nonce).decode(),
-            'txid': f'0x{hexlify(self.hash_sha256()).decode()}'
+            'nonce': hexlify(self._nonce).decode(),
+            'txid': f'0x{hexlify(self.get_txid()).decode()}'
         }
 
     @staticmethod
@@ -109,7 +120,7 @@ class TX:
         obj = TX(
             inputs      = res_ins,
             outputs     = res_out,
-            nonce       = unhexlify(json_data['nonce'])
+            _nonce      = unhexlify(json_data['nonce'])
         )
         
         if not json_data['txid'] == f'0x{hexlify(obj.hash_sha256()).decode()}':
@@ -200,12 +211,14 @@ class TX:
     def gen_nonce(self) -> bytes:
         '''
         Generates a random nonce for the transaction
+        Also invalidates the txid cache
 
         Return:
             bytes: The nonce bytes that have been set to the TX
         '''
 
         self.nonce = os.urandom(8)
+        self.txid_cache = b''
         return self.nonce
     
     def make(self):
@@ -231,6 +244,19 @@ class TX:
         
         return True
 
+    def add_output(self, output: UTXO) -> None:
+        '''
+        Add the UTXO to the outputs and invalidate the cached txid
+        '''
+        self.outputs.append(output)
+        self.txid_cache = b''
+
+    def add_input(self, input: UTXO) -> None:
+        '''
+        Add the UTXO to the inputs and invalidate the cached txid
+        '''
+        self.inputs.append(input)
+        self.txid_cache = b''
 
 def hash_utxo_list(lst: List[UTXO]) -> bytes:
     '''
