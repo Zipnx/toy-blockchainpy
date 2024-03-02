@@ -110,6 +110,36 @@ class TX:
             txid        = unhexlify(json_data['txid'][2:])
         )
 
+    def set_utxo_indexes(self) -> None:
+        '''
+        Sets the UTXO indexes in ascending order
+
+        Return:
+            None
+        '''
+        
+        for i, utxo in enumerate(self.outputs):
+            utxo.index = i
+
+    def check_outputs(self) -> bool:
+        '''
+        Check if the UTXO outputs are properly set up
+
+        Return:
+            bool: Whether the TX's outputs have distinct and valid indexes
+        '''
+
+        self.outputs.sort() # Using the __lt__ dunder method they are sorting by their index
+        
+        if len(self.outputs) > 255: return False
+
+        for i, utxo in enumerate(self.outputs):
+
+            if not utxo.is_valid(): return False
+
+            if not utxo.index == i: return False 
+
+        return True
 
     def gen_txid(self) -> bytes:
         '''
@@ -135,6 +165,38 @@ class TX:
 
         self.nonce = os.urandom(8)
         return self.nonce
+    
+    def make(self):
+        '''
+        Sets the UTXO indexes, generates a nonce and the transaction id
+        
+        Return:
+            TX: Returns the object itself (reference ofc)
+        '''
+
+        self.set_utxo_indexes()
+        self.gen_nonce()
+        self.gen_txid()
+
+        return self
+
+    def check_inputs(self) -> bool:
+        '''
+        Check the utxo input validities also check the UTXO input 
+        signatures to unlock for spending. Note this only checks for the case
+        where all the inputs are from 1 address
+
+        Return:
+            bool: Whether the inputs are proper
+        '''
+
+        for utxo_input in self.inputs:
+
+            if not utxo_input.is_valid_input(): return False
+            
+            if not utxo_input.unlock_spend(self.outputs): return False
+
+        return True
 
 def hash_utxo_list(lst: List[UTXO]) -> bytes:
     '''

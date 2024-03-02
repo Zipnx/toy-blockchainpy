@@ -1,7 +1,7 @@
 
 from typing import List
 
-import struct
+import struct, logging
 from binascii import hexlify, unhexlify
 from hashlib import sha256
 from dataclasses import dataclass
@@ -9,16 +9,16 @@ from dataclasses import dataclass
 from coretc.crypto import data_sign, data_verify
 from Crypto.PublicKey import ECC
 
+logger = logging.getLogger('tc-core')
 
 @dataclass(init = True)
 class UTXO:
     owner_pk: bytes
     amount: float
 
-    index: int
-    
-    txid: bytes      = b''
-    signature: bytes = b''
+    index: int          = 0 
+    txid: bytes         = b''
+    signature: bytes    = b''
     
     def hash_sha256(self) -> bytes:
         '''
@@ -48,6 +48,20 @@ class UTXO:
         return sha256(
             output_hashes + self.hash_sha256() # Yes this is not ideal
         ).digest()
+    
+    def get_id(self) -> str:
+        '''
+        Retrieve the UTXO's identifier, defined as it's source txid and the index in the outputs
+
+        Return:
+            str: The utxo id string
+        '''
+        
+        if not len(self.txid) == 32:
+            logger.error('Unable to get utxo id, transaction id not set.')
+            return ''
+
+        return f'{hexlify(self.txid).decode()}:{self.index}'
 
     def to_json(self, is_input: bool = True) -> dict:
         '''
@@ -63,7 +77,7 @@ class UTXO:
         
         json_data = {
             'owner': f'0x{sha256(self.owner_pk).hexdigest()}',
-            'amount': self.amount,
+            'amount': self.amount, # This doesn't need to be present on inputs, but im keeping it for easy display idc
             'index': self.index,
             'pk': hexlify(self.owner_pk).decode()
         }
@@ -163,6 +177,8 @@ class UTXO:
         Return:
             bool: Structural validity of the UTXO's input parameters
         '''
+        
+        if not self.is_valid(): return False
 
         if not len(self.txid) == 32: return False
         if not self.signature: return False
