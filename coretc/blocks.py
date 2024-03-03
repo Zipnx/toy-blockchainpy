@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 from Crypto.Util.number import long_to_bytes
+from coretc import transaction
 
 from coretc.difficulty import hashDifficulty, adjustDifficulty, getDifficultyTarget, checkDifficulty
 from coretc.transaction import TX
@@ -28,14 +29,13 @@ class Block:
         Returns:
             bytes: The SHA-256 hash of the block object
         '''
-        
-        # TODO: Needs hashing of TXs
 
         return sha256(
             self.previous_hash + 
             long_to_bytes(self.timestamp) + 
             long_to_bytes(self.difficulty_bits) + 
-            self.nonce
+            self.nonce +
+            b''.join([tx.get_txid() for tx in self.transactions])
         ).digest()
     
     def is_hash_valid(self) -> bool:
