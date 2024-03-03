@@ -49,7 +49,7 @@ class Chain:
         # TODO: Do checks here
         self.utxo_set.load_utxos()
 
-    def validate_transactions(self, block: Block, additional_chain: CombinedList) -> BlockStatus:
+    def validate_transactions(self, block: Block, fork: ForkBlock | None) -> BlockStatus:
          
         reward_found = False
         
@@ -83,7 +83,7 @@ class Chain:
 
         return BlockStatus.VALID
 
-    def is_block_valid(self, block: Block, additional_chain: List[Block] = []) -> BlockStatus:
+    def is_block_valid(self, block: Block, fork: ForkBlock | None) -> BlockStatus:
         '''
         Given a block, check if it's valid. Also verifies in a side chain
 
@@ -97,6 +97,12 @@ class Chain:
 
         if self.forks is not None and block_hash in self.forks.hash_cache:
             return BlockStatus.INVALID_DUPLICATE
+        
+        
+        if fork is not None:
+            additional_chain = fork.get_block_route()
+        else:
+            additional_chain = []
 
         reference_chain: CombinedList = CombinedList(self.blocks, additional_chain)
 
@@ -121,7 +127,7 @@ class Chain:
             logger.warn('Block Invalid: Incorrect PoW hash')
             return BlockStatus.INVALID_POW
 
-        if (res := self.validate_transactions(block, reference_chain)) == BlockStatus.VALID:
+        if (res := self.validate_transactions(block, fork)) == BlockStatus.VALID:
             logger.debug('Block and TXs validated successfully')
         else:
             logger.warn('Block TXs invalid')
@@ -149,14 +155,9 @@ class Chain:
         
         ### If the selected fork block whose hash is this block's previous hash,
         ### the chain route is the list of blocks in order from the tree root to the forkblock
-
-        temp_chain_route: List[Block] = []
         
-        if forkblock is not None:
-            
-            temp_chain_route = forkblock.get_block_route()
         
-        validity = self.is_block_valid(newBlock, additional_chain = temp_chain_route)
+        validity = self.is_block_valid(newBlock, fork = forkblock)
         
         logger.debug(f'Validation result: {validity}')
 
