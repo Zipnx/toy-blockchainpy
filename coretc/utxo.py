@@ -186,6 +186,23 @@ class UTXO:
 
         return True
 
+    def compare_as_input(self, other) -> bool:
+        '''
+        Compare the UTXO object with another
+
+        Args:
+            other (UTXO): Other UTXO object
+        Return:
+            UTXO: Whether the UTXOs are the same as inputs
+        '''
+
+        if not self.txid == other.txid: return False
+        if not self.index == other.index: return False
+        if not self.amount == other.amount: return False
+        if not self.owner_pk == other.owner_pk: return False
+
+        return True
+
     # trust me this is helpful
     def __lt__(self, other):
         if not isinstance(other, type(self)):

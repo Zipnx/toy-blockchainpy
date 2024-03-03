@@ -53,6 +53,12 @@ class Chain:
          
         reward_found = False
         
+        if fork is not None:
+            fork_used, fork_added = fork.get_fork_utxoset()
+        else:
+            fork_used = []
+            fork_added = []
+
         # Utilized to make sure no 2 transactions use the same UTXO
         utxos_used: List[UTXO] = list()
 
@@ -74,8 +80,38 @@ class Chain:
                 return BlockStatus.INVALID_TX_OUTPUTS
 
             # Check if the utxo's are even valid to spend
+            for utxo in transaction.inputs:
             
+                # Check if it has been used in a transaction of the current block / tx
+                for check_utxo in utxos_used:
+                    if check_utxo.compare_as_input(utxo):
+                        return BlockStatus.INVALID_TX_UTXO_IS_SPENT
 
+                utxos_used.append(utxo)
+
+                # First check the utxo set
+                utxo_in_set: UTXO | None = self.utxo_set.utxo_get(utxo.txid, utxo.index)
+                
+                if utxo_in_set is not None:
+                    if not utxo_in_set.compare_as_input(utxo):
+                        # The utxo has some modifications that make it invalid
+                        return BlockStatus.INVALID_TX_UTXO_IS_SPENT
+                    
+                    # Remember to check if it's used in the fork
+
+                    for fork_utxo in fork_used:
+                        if fork_utxo.compare_as_input(utxo):
+                            return BlockStatus.INVALID_TX_UTXO_IS_SPENT
+
+                    continue
+                
+                # Then check the fork's set
+                for fork_utxo in fork_added:
+                    
+                    if fork_utxo.compare_as_input(utxo):
+                        continue
+
+                return BlockStatus.INVALID_TX_UTXO_IS_SPENT
 
             # Note: If a TX uses a UTXO created in the same block this will reject it
             
