@@ -7,6 +7,7 @@ import os, logging
 
 from coretc.utxo import UTXO
 from coretc.crypto import data_sign, data_verify
+from coretc.utils.generic import data_hexdigest, data_hexundigest
 
 logger = logging.getLogger('tc-core')
 
@@ -31,15 +32,17 @@ class TX:
             self._nonce
         ).digest()
     
-    def get_txid(self) -> bytes:
+    def get_txid(self, ignore_cache: bool = False) -> bytes:
         '''
         Gets the transaction's current transaction ID
 
+        Args:
+            ignore_cache (bool): If true the hash will be recalculated even if it is already cached
         Return:
             bytes: The 32 byte hash
         '''
-
-        if self._txid_cache: return self._txid_cache
+        
+        if self._txid_cache and not ignore_cache: return self._txid_cache
 
         return self.hash_sha256()
 
@@ -64,8 +67,8 @@ class TX:
         return {
             'inputs': in_json,
             'outputs': out_json,
-            'nonce': hexlify(self._nonce).decode(),
-            'txid': f'0x{hexlify(self.get_txid()).decode()}'
+            'nonce': data_hexdigest(self._nonce),
+            'txid': data_hexdigest(self.get_txid())
         }
 
     @staticmethod
@@ -120,10 +123,10 @@ class TX:
         obj = TX(
             inputs      = res_ins,
             outputs     = res_out,
-            _nonce      = unhexlify(json_data['nonce'])
+            _nonce      = data_hexundigest(json_data['nonce'])
         )
         
-        if not json_data['txid'] == f'0x{hexlify(obj.hash_sha256()).decode()}':
+        if not json_data['txid'] == data_hexdigest(obj.hash_sha256()):
             logger.error('Deserialized TX does not have the same transaction ID')
             return None
 

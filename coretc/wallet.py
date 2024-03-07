@@ -20,6 +20,12 @@ class Wallet:
 
     @staticmethod
     def generate():
+        '''
+        Generate a new wallet
+
+        Return:
+            Wallet: New wallet object
+        '''
         priv = ECC.generate(curve = 'P-256')
 
         return Wallet(private_key = priv)
@@ -109,10 +115,10 @@ class Wallet:
             return None
 
         outputs = list()
-        outputs.append(UTXO(owner_pk = recv_pk, amount = amount, index = 0))
+        outputs.append(UTXO(owner_pk = recv_pk, amount = amount))
         
         if funds > amount:
-            outputs.append(UTXO(owner_pk = self.get_pk_bytes(), amount = funds - amount, index = 1))
+            outputs.append(UTXO(owner_pk = self.get_pk_bytes(), amount = funds - amount))
 
         for utxo in used_inputs:
             utxo.sign(self.sk, outputs)
@@ -121,8 +127,7 @@ class Wallet:
             inputs = used_inputs,
             outputs  = outputs
         )
-        tx.gen_nonce()
-        tx.gen_txid()
+        tx.make()
 
         return tx
 
@@ -140,11 +145,9 @@ class Wallet:
         tx = TX(
             inputs = [],
             outputs = [
-                UTXO(owner_pk = self.get_pk_bytes(), amount = reward, index = 0)
+                UTXO(owner_pk = self.get_pk_bytes(), amount = reward)
             ]
         )
-
-        tx.gen_nonce()
-        tx.gen_txid()
+        tx.make()
 
         return tx

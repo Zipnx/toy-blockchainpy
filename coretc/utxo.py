@@ -6,6 +6,7 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 from dataclasses import dataclass
 
+from coretc.utils.generic import data_hexdigest, data_hexundigest
 from coretc.crypto import data_sign, data_verify
 from Crypto.PublicKey import ECC
 
@@ -77,7 +78,7 @@ class UTXO:
         '''
         
         json_data = {
-            'owner': f'0x{sha256(self.owner_pk).hexdigest()}',
+            'owner': data_hexdigest(sha256(self.owner_pk).digest()),
             'amount': self.amount, # This doesn't need to be present on inputs, but im keeping it for easy display idc
             'index': self.index,
             'pk': hexlify(self.owner_pk).decode()
@@ -85,7 +86,7 @@ class UTXO:
 
         if is_input:
             json_data['unlock-sig'] = hexlify(self.signature).decode()
-            json_data['txid'] = f'0x{hexlify(self.txid).decode()}' # im braindead
+            json_data['txid'] = data_hexdigest(self.txid) # im braindead
 
 
         return json_data
@@ -115,8 +116,8 @@ class UTXO:
             owner_pk    = unhexlify(json_data['pk']),
             amount      = float(json_data['amount']),
             index       = int(json_data['index']),
-            txid        = unhexlify(json_data['txid'][2:]) if is_input else b'',
-            signature   = unhexlify(json_data['unlock-sig']) if is_input else b''
+            txid        = data_hexundigest(json_data['txid']) if is_input else b'',
+            signature   = data_hexundigest(json_data['unlock-sig']) if is_input else b'' 
         )
     
     def get_signature(self, private_key: ECC.EccKey, outputs: List) -> bytes:

@@ -14,10 +14,6 @@ import json, time
 
 import logging
 
-from rich.console import Console
-from rich.panel import Panel
-from rich.tree import Tree
-
 logger = logging.getLogger('tc-core')
 
 # Possibly split the logger into further submodules
