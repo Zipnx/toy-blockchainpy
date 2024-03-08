@@ -198,19 +198,18 @@ class Chain:
             return validity
         
         # In the case where a fork is not present, it needs to be created with the new block as the root
-        if newBlock.previous_hash == b'\x00' * 32 and forkblock is None:
+
+        if forkblock is None:
             self.forks = ForkBlock(None, newBlock)
-
-            # i hate myself i hate myself i hate myself
+            # This is probably the worst shit ive written in a while
             self.forks.hash_cache[newBlock.hash_sha256()] = self.forks
-
         else:
-            if forkblock is None or self.forks is None:
-                print('wtf?')
-                return BlockStatus.INVALID_ERROR 
+            
+            if self.forks is None:
+                return BlockStatus.INVALID_ERROR
 
-            fb_instance = forkblock.append_block(newBlock)
-            self.forks.hash_cache[newBlock.hash_sha256()] = fb_instance
+            fb = forkblock.append_block(newBlock)
+            self.forks.hash_cache[newBlock.hash_sha256()] = fb
 
         merged = self.attempt_merge()
 
@@ -268,7 +267,34 @@ class Chain:
         self.forks.regenerate_cache() # Performance hit
 
         return mergers
+    
+    def merge_all(self) -> int:
+        '''
+        Forcefully merge all blocks in the fork tree
+        NOTE: This should not be routinely used
 
+        Return:
+            int: Number of blocks merged
+        '''
+
+        if self.forks is None: return 0
+
+        current: ForkBlock | None = self.forks
+        mergers = 0
+
+        while current is not None:
+            self.blocks.append(current.block)
+            mergers += 1
+
+            if len(current.next) == None:
+                current = None
+                continue
+
+            current = current.get_tallest_subtree()
+        
+        self.forks = current
+
+        return mergers
 
     def get_top_blockreward(self) -> float:
         '''

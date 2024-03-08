@@ -8,6 +8,6 @@ from tests import run
 
 import logging
 
-logging.getLogger('tc-core').setLevel(logging.ERROR)
+logging.getLogger('tc-core').setLevel(logging.ERROR + 1)
 
 if __name__ == '__main__': run()

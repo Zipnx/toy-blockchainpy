@@ -1,8 +1,10 @@
 
 from coretc import Block, ForkBlock, TX, UTXO, mine_block
 
-def create_example_block(prev: bytes = b'\x00'*32) -> Block:
-    return mine_block(Block(prev, 1, 0x2000FFFF, b'', []))
+def create_example_block(prev: bytes = b'\x00'*32, mine: bool = True) -> Block:
+    blk = Block(prev, 1, 0x2000FFFF, b'', [])
+
+    return blk if not mine else mine_block(blk)
 
 def create_example_tx() -> TX:
     return TX([], [])
