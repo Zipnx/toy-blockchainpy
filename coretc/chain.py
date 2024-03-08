@@ -295,6 +295,23 @@ class Chain:
         self.forks = current
 
         return mergers
+     
+    def get_height(self) -> int:
+        '''
+        Get the total chain height
+        NOTE: This must be made to include the stores blocks in the future
+
+        Return:
+            int: Total chain height
+        '''
+
+        height = len(self.blocks)
+
+        if self.forks is not None:
+            height += self.forks.get_tree_height()
+
+        return height
+
 
     def get_top_blockreward(self) -> float:
         '''

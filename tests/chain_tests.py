@@ -31,6 +31,7 @@ class TestChain(unittest.TestCase):
 
         self.assertEqual(len(chain.blocks), 1,
                          'Genesis block shouldve been forcefully merged')
+        self.assertEqual(chain.get_height(), 1)
 
         self.assertIsNone(chain.forks, 
                           'After forceful merge the chain forks should be none')
@@ -54,5 +55,23 @@ class TestChain(unittest.TestCase):
 
         self.assertIsNone(chain.forks)
         self.assertEqual(len(chain.blocks), 2)
+        self.assertEqual(chain.get_height(), 2)
 
-         
+    def test_block_denial(self) -> None:
+
+        chain = Chain(ChainSettings())
+
+        newblock = create_example_block(prev = b'\x69'*32)
+
+        res = chain.add_block(newblock)
+
+        self.assertNotEqual(res, BlockStatus.VALID)
+        self.assertEqual(chain.get_height(), 0)
+        self.assertEqual(chain.get_tophash(), b'\x00'*32)
+
+        newblock = create_example_block(mine = False)
+        newblock.difficulty_bits = 0x20FFFFFF
+
+        res = chain.add_block(newblock)
+
+        self.assertNotEqual(res, BlockStatus.VALID)

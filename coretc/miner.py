@@ -25,6 +25,7 @@ def mine_block(blk: Block, verbose: bool = False) -> Block:
     t0 = time.time()
 
     while not blk.is_hash_valid():
+        blk.timestamp = int(time.time())
         blk.nonce = mixer + struct.pack('Q', counter)
         counter += 1
     
