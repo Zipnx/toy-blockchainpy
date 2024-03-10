@@ -48,7 +48,7 @@ class Block:
 
         return checkDifficulty(self.hash_sha256(), self.difficulty_bits)
 
-    def to_json(self) -> dict[str, str | int]:
+    def to_json(self) -> dict[str, str | int | list]:
         '''
         Convert the Block object into json
 
@@ -56,14 +56,18 @@ class Block:
             dict: Dict object of block data (json serializable)
 
         '''
-            
-        # Todo: Add TXs
+        
+        tx_json = []
 
-        result: dict[str, str | int] = {
+        for tx in self.transactions:
+            tx_json.append(tx.to_json())
+
+        result: dict[str, str | int | list] = {
             'prev': f'0x{hexlify(self.previous_hash).decode()}',
             'hash': f'0x{hexlify(self.hash_sha256()).decode()}',
             'timestamp': self.timestamp,
             'difficulty': self.difficulty_bits,
+            'txs': tx_json,
             'nonce': hexlify(self.nonce).decode()
         }
         

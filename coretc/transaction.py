@@ -223,9 +223,9 @@ class TX:
             bytes: The nonce bytes that have been set to the TX
         '''
 
-        self.nonce = os.urandom(8)
+        self._nonce = os.urandom(8)
         self.txid_cache = b''
-        return self.nonce
+        return self._nonce
     
     def make(self):
         '''
@@ -246,7 +246,7 @@ class TX:
         NOTE: UTXOs are check using check_inputs & check_outputs
         '''
 
-        if self.nonce == b'': return False
+        if self._nonce == b'': return False
         
         return True
 
