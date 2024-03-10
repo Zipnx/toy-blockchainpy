@@ -85,20 +85,32 @@ class Block:
             Block: New block object
         '''
 
-        # This also needs to have deserialization of the TXs
-
-        req_fields = ['prev', 'hash', 'timestamp', 'difficulty', 'nonce']
+        req_fields = ['prev', 'hash', 'timestamp', 'difficulty', 'txs', 'nonce']
 
         if not len(req_fields) == len(json_data.keys()): return None 
 
         for f in req_fields:
             if f not in json_data.keys():
                 return None
+        
+        # Get the transactions as object
+        if not isinstance(req_fields['txs'], list): 
+            return None
+
+        tx_objects: list[TX] = []
+
+        for transaction_json in req_fields['txs']:
+            obj: TX | None = TX.from_json(transaction_json)
+
+            if obj is None: return None
+            
+            tx_objects.append(obj)
+
 
         return Block(
             previous_hash   = unhexlify(json_data['prev'][2:]),
             timestamp       = json_data['timestamp'],
             difficulty_bits = json_data['difficulty'],
             nonce           = unhexlify(json_data['nonce']),
-            transactions    = []
+            transactions    = tx_objects
         )
