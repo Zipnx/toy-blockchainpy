@@ -10,6 +10,7 @@ from coretc import transaction
 
 from coretc.difficulty import hashDifficulty, adjustDifficulty, getDifficultyTarget, checkDifficulty
 from coretc.transaction import TX
+from coretc.utils.generic import data_hexdigest, data_hexundigest
 
 @dataclass(init = True)
 class Block:
@@ -63,12 +64,12 @@ class Block:
             tx_json.append(tx.to_json())
 
         result: dict[str, str | int | list] = {
-            'prev': f'0x{hexlify(self.previous_hash).decode()}',
-            'hash': f'0x{hexlify(self.hash_sha256()).decode()}',
+            'prev': data_hexdigest(self.previous_hash),
+            'hash': data_hexdigest(self.hash_sha256()),
             'timestamp': self.timestamp,
             'difficulty': self.difficulty_bits,
             'txs': tx_json,
-            'nonce': hexlify(self.nonce).decode()
+            'nonce': data_hexdigest(self.nonce)
         }
         
         return result
@@ -94,12 +95,12 @@ class Block:
                 return None
         
         # Get the transactions as object
-        if not isinstance(req_fields['txs'], list): 
+        if not isinstance(json_data['txs'], list): 
             return None
 
         tx_objects: list[TX] = []
 
-        for transaction_json in req_fields['txs']:
+        for transaction_json in json_data['txs']:
             obj: TX | None = TX.from_json(transaction_json)
 
             if obj is None: return None
@@ -108,9 +109,9 @@ class Block:
 
 
         return Block(
-            previous_hash   = unhexlify(json_data['prev'][2:]),
+            previous_hash   = data_hexundigest(json_data['prev']),
             timestamp       = json_data['timestamp'],
             difficulty_bits = json_data['difficulty'],
-            nonce           = unhexlify(json_data['nonce']),
+            nonce           = data_hexundigest(json_data['nonce']),
             transactions    = tx_objects
         )

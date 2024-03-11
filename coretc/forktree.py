@@ -1,6 +1,7 @@
 
 from typing import List, Tuple
 from binascii import hexlify
+from copy import deepcopy
 
 from rich.text import Text
 from rich.tree import Tree
@@ -45,8 +46,14 @@ class ForkBlock:
 
         # Store used and new utxos from the block
         for transaction in self.block.transactions:
-            self.utxos_used.extend(transaction.inputs)
-            self.utxos_added.extend(transaction.outputs)
+            self.utxos_used.extend(deepcopy(transaction.inputs))
+            
+            tx_outputs_initial = deepcopy(transaction.outputs)
+
+            for output in tx_outputs_initial:
+                output.txid = transaction.get_txid()
+
+            self.utxos_added.extend(tx_outputs_initial)
     
     def append_block(self, new_block: Block):
         '''

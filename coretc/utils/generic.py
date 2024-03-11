@@ -1,5 +1,6 @@
 
 from binascii import hexlify, unhexlify
+import json
 
 def data_hexdigest(data: bytes) -> str:
     '''
@@ -28,3 +29,6 @@ def data_hexundigest(hexstring: str) -> bytes:
     hexstring = hexstring[(2 if hexstring[:2] == '0x' else 0):]
 
     return unhexlify(hexstring)
+
+def dump_json(json_data: dict) -> None:
+    print(json.dumps(json_data, indent = 4))

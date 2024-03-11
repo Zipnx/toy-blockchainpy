@@ -189,7 +189,7 @@ class TX:
         for utxo_input in self.inputs:
 
             if not utxo_input.is_valid_input(): return False
-            
+
             if not utxo_input.unlock_spend(self.outputs): return False
 
         return True

@@ -1,5 +1,6 @@
 
 from coretc.transaction import TX
+from coretc.utils.generic import data_hexdigest
 from coretc.utxo import UTXO
 
 from typing import List, Tuple, Literal
@@ -115,10 +116,10 @@ class Wallet:
             return None
 
         outputs = list()
-        outputs.append(UTXO(owner_pk = recv_pk, amount = amount))
+        outputs.append(UTXO(owner_pk = recv_pk, amount = amount, index = 0))
         
         if funds > amount:
-            outputs.append(UTXO(owner_pk = self.get_pk_bytes(), amount = funds - amount))
+            outputs.append(UTXO(owner_pk = self.get_pk_bytes(), amount = funds - amount, index = 1))
 
         for utxo in used_inputs:
             utxo.sign(self.sk, outputs)
@@ -128,7 +129,7 @@ class Wallet:
             outputs  = outputs
         )
         tx.make()
-
+        
         return tx
 
     def create_reward_transaction(self, reward: float) -> TX:

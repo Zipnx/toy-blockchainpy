@@ -3,6 +3,7 @@ from typing import List, Tuple
 
 from coretc.forktree import ForkBlock
 from coretc.blocks import Block
+from coretc.utils.generic import data_hexdigest
 from coretc.utxo import UTXO
 from coretc.status import BlockStatus
 from coretc.utils.list_utils import CombinedList
@@ -60,6 +61,8 @@ class Chain:
 
         for transaction in block.transactions:
             
+            #print(json.dumps(transaction.to_json(), indent = 4))
+
             if len(transaction.inputs) == 0:
                 if reward_found: return BlockStatus.INVALID_TX_MULTIPLE_REWARDS
                 reward_found = True
@@ -81,6 +84,7 @@ class Chain:
                 # Check if it has been used in a transaction of the current block / tx
                 for check_utxo in utxos_used:
                     if check_utxo.compare_as_input(utxo):
+                        logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} spent in current fork')
                         return BlockStatus.INVALID_TX_UTXO_IS_SPENT
 
                 utxos_used.append(utxo)
@@ -91,21 +95,33 @@ class Chain:
                 if utxo_in_set is not None:
                     if not utxo_in_set.compare_as_input(utxo):
                         # The utxo has some modifications that make it invalid
+                        logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} present in utxoset but modified')
                         return BlockStatus.INVALID_TX_UTXO_IS_SPENT
                     
                     # Remember to check if it's used in the fork
 
                     for fork_utxo in fork_used:
                         if fork_utxo.compare_as_input(utxo):
+                            logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} present in utxoset but used in fork')
                             return BlockStatus.INVALID_TX_UTXO_IS_SPENT
 
                     continue
                 
                 # Then check the fork's set
+                
+                # I hate this solution but fuck it
+                found = False
                 for fork_utxo in fork_added:
-                    
+                     
                     if fork_utxo.compare_as_input(utxo):
-                        continue
+                        found = True
+                        break
+
+                if found: continue
+
+                logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} does not exist.')
+
+                print(fork_added)
 
                 return BlockStatus.INVALID_TX_UTXO_IS_SPENT
 

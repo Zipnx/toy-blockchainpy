@@ -6,7 +6,7 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 from dataclasses import dataclass
 
-from coretc.utils.generic import data_hexdigest, data_hexundigest
+from coretc.utils.generic import data_hexdigest, data_hexundigest, dump_json
 from coretc.crypto import data_sign, data_verify
 from Crypto.PublicKey import ECC
 
@@ -46,7 +46,6 @@ class UTXO:
         '''
 
         output_hashes = b''.join( [utxo.hash_sha256() for utxo in outputs] )
-
         return sha256(
             output_hashes + self.hash_sha256() # Yes this is not ideal
         ).digest()
@@ -140,6 +139,10 @@ class UTXO:
         '''
 
         self.signature = self.get_signature(private_key, outputs)
+        logger.debug('Signed utxo input hash: ' + data_hexdigest(self.get_hash_with_outputs(outputs)))
+        #dump_json(self.to_json())
+        #print('Output count:', len(outputs))
+
         return self
 
     def unlock_spend(self, outputs: List) -> bool:
@@ -151,6 +154,12 @@ class UTXO:
         '''
 
         pub = ECC.import_key(self.owner_pk)
+
+        if not data_verify(pub, self.get_hash_with_outputs(outputs), self.signature):
+            logger.debug('Signature verification of utxo input: ' + data_hexdigest(self.get_hash_with_outputs(outputs)))
+        
+        #dump_json(self.to_json())
+        #print('Output count:', len(outputs))
 
         return data_verify(pub, self.get_hash_with_outputs(outputs), self.signature)
 
@@ -181,7 +190,7 @@ class UTXO:
         '''
         
         if not self.is_valid(): return False
-
+        
         if not len(self.txid) == 32: return False
         if not self.signature: return False
 
@@ -196,7 +205,7 @@ class UTXO:
         Return:
             UTXO: Whether the UTXOs are the same as inputs
         '''
-
+        
         if not self.txid == other.txid: return False
         if not self.index == other.index: return False
         if not self.amount == other.amount: return False
