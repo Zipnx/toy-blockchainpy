@@ -148,4 +148,20 @@ class UTXOSet:
 
         return self.utxos[list_index]
 
+    def utxo_add(self, utxo: UTXO) -> bool:
+        '''
+        Attempt to add a utxo in the utxo set. If the utxo does not have proper fields this will return False
+        NOTE: This does not handle duplicate additions
+
+        Args:
+            utxo (UTXO): The utxo object to add to the set
+        Return:
+            bool: Whether the addition succeded
+        '''
+
+        if not utxo.is_valid() or not len(utxo.txid) == 32: return False 
+
+        self.utxos.append(utxo)
+        return True
+
 

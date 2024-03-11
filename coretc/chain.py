@@ -3,6 +3,7 @@ from typing import List, Tuple
 
 from coretc.forktree import ForkBlock
 from coretc.blocks import Block
+from coretc.utils.errors import deprecated, incomplete
 from coretc.utils.generic import data_hexdigest
 from coretc.utxo import UTXO
 from coretc.status import BlockStatus
@@ -278,12 +279,28 @@ class Chain:
 
             tree_height -= 1
         
+        # Add the modifications to the utxo set to the actual utxo_set
+        # .parent accessible because the gc hasnt kicked in yet
+        
+        if mergers > 0:
+            utxos_used, utxos_added = current.parent.get_fork_utxoset()
+
+            for utxo in utxos_used:
+                if not self.utxo_set.utxo_remove(utxo.txid, utxo.index):
+                    logger.critical('When merging, while updating the utxo set a used utxo was not present in the set?')
+
+            for utxo in utxos_added:
+                # these are already deepcopies
+                if not self.utxo_set.utxo_add(utxo):
+                    logger.critical('When merging, while updating the utxo set a new utxo was invalid')
+
         self.forks = current
         self.forks.regenerate_heights()
         self.forks.regenerate_cache() # Performance hit
 
         return mergers
     
+    @incomplete
     def merge_all(self) -> int:
         '''
         Forcefully merge all blocks in the fork tree
