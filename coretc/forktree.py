@@ -31,7 +31,7 @@ class ForkBlock:
         Initialize a new fork block object using a block and it's predecessor in the chain
         '''
         
-        self.parent: ForkBlock = parent
+        self.parent: ForkBlock | None = parent
         self.block:  Block = blk
         self.next:   List[ForkBlock] = []
         

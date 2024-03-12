@@ -65,5 +65,13 @@ def main():
 
     res = chain.add_block(newblock)
 
+    for _ in range(8):
+        newblock = sample_block(chain)
+        mine_block(newblock)
+
+        chain.add_block(newblock)
+
+    print(chain.utxo_set.get_as_json())
+
 if __name__ == '__main__':
     main()

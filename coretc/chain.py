@@ -281,8 +281,8 @@ class Chain:
         
         # Add the modifications to the utxo set to the actual utxo_set
         # .parent accessible because the gc hasnt kicked in yet
-        
         if mergers > 0:
+            logger.info('Updating UTXO Set with new data from fork')
             utxos_used, utxos_added = current.parent.get_fork_utxoset()
 
             for utxo in utxos_used:
@@ -295,6 +295,7 @@ class Chain:
                     logger.critical('When merging, while updating the utxo set a new utxo was invalid')
 
         self.forks = current
+        self.forks.parent = None # Hopefully this will cause the objects to be cleared by the gc, but idfk
         self.forks.regenerate_heights()
         self.forks.regenerate_cache() # Performance hit
 
@@ -325,6 +326,21 @@ class Chain:
 
             current = current.get_tallest_subtree()
         
+        if mergers > 0:
+            logger.info('Updating UTXO Set with new data from fork')
+            utxos_used, utxos_added = current.parent.get_fork_utxoset()
+
+            for utxo in utxos_used:
+                if not self.utxo_set.utxo_remove(utxo.txid, utxo.index):
+                    logger.critical('When merging, while updating the utxo set a used utxo was not present in the set?')
+
+            for utxo in utxos_added:
+                # these are already deepcopies
+                if not self.utxo_set.utxo_add(utxo):
+                    logger.critical('When merging, while updating the utxo set a new utxo was invalid')
+
+
+
         self.forks = current
 
         return mergers
