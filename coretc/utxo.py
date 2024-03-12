@@ -129,7 +129,7 @@ class UTXO:
 
         # This is not ideal, since a SHA256 hash will be calculated again
         return data_sign( private_key, self.get_hash_with_outputs(outputs) ) or b'' 
-    
+
     def sign(self, private_key: ECC.EccKey, outputs: List):
         '''
         Calculate and set the UTXO's signature then return the object itself

@@ -45,9 +45,8 @@ def main():
     if res != BlockStatus.VALID: return
     
     #pain
-    rew_output = deepcopy(a_reward.outputs[0])
-    rew_output.txid = a_reward.get_txid()
-    a.owned_utxos += [rew_output]
+    outputs = a_reward.get_output_references()
+    a.owned_utxos += outputs
     
     a_send = a.create_transaction_single(b.get_pk_bytes(), 0.69)
     b_reward = b.create_reward_transaction(chain.get_top_blockreward())
@@ -64,6 +63,18 @@ def main():
     #print(json.dumps(newblock.to_json(), indent = 4))
 
     res = chain.add_block(newblock)
+    
+    if res != BlockStatus.VALID: return
+
+    outputs = b_reward.get_output_references()
+    b.owned_utxos += outputs
+
+    outputs = a_send.get_output_references()
+    b.owned_utxos += [outputs[0]]
+    a.owned_utxos += [outputs[1]]
+    
+    print(a.balance())
+    print(b.balance())
 
     for _ in range(8):
         newblock = sample_block(chain)

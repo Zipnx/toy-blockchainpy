@@ -1,5 +1,6 @@
 
 from binascii import hexlify, unhexlify
+from copy import deepcopy
 from hashlib import sha256
 from typing import List
 from dataclasses import dataclass, field
@@ -45,6 +46,25 @@ class TX:
         if self._txid_cache and not ignore_cache: return self._txid_cache
 
         return self.hash_sha256()
+
+    def get_output_references(self) -> list[UTXO]:
+        '''
+        Get a list of the outputs with the transaction id set n stuff
+
+        Return:
+            list[UTXO]: UTXO Output list
+        '''
+
+        result: list[UTXO] = []
+
+        for utxo in self.outputs:
+            ref_obj = deepcopy(utxo)
+
+            ref_obj.txid = self.get_txid()
+
+            result.append(ref_obj)
+
+        return result
 
     def to_json(self) -> dict:
         '''
