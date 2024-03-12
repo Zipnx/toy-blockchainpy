@@ -257,11 +257,15 @@ class Chain:
         if tree_height <= 6: return 0
         
         logger.info('Merging Blocks from fork tree into the chain')
-
+        
+        # Tf was i thinking while writing this shit
         if linear_height >= 3:
             for _ in range(linear_height - 1):
                 self.forks = self.forks.next[0]
             
+            self.update_utxoset_from_fork(self.forks)
+            self.forks.parent = None
+
             self.forks.regenerate_heights()
             self.forks.regenerate_cache()
             return linear_height - 1
@@ -281,18 +285,8 @@ class Chain:
         
         # Add the modifications to the utxo set to the actual utxo_set
         # .parent accessible because the gc hasnt kicked in yet
-        if mergers > 0:
-            logger.info('Updating UTXO Set with new data from fork')
-            utxos_used, utxos_added = current.parent.get_fork_utxoset()
-
-            for utxo in utxos_used:
-                if not self.utxo_set.utxo_remove(utxo.txid, utxo.index):
-                    logger.critical('When merging, while updating the utxo set a used utxo was not present in the set?')
-
-            for utxo in utxos_added:
-                # these are already deepcopies
-                if not self.utxo_set.utxo_add(utxo):
-                    logger.critical('When merging, while updating the utxo set a new utxo was invalid')
+        
+        self.update_utxoset_from_fork(current)
 
         self.forks = current
         self.forks.parent = None # Hopefully this will cause the objects to be cleared by the gc, but idfk
@@ -321,30 +315,44 @@ class Chain:
             mergers += 1
 
             if len(current.next) == None:
-                current = None
-                continue
+                self.update_utxoset_from_fork(current)
+                break
 
             current = current.get_tallest_subtree()
         
-        if mergers > 0:
-            logger.info('Updating UTXO Set with new data from fork')
-            utxos_used, utxos_added = current.parent.get_fork_utxoset()
-
-            for utxo in utxos_used:
-                if not self.utxo_set.utxo_remove(utxo.txid, utxo.index):
-                    logger.critical('When merging, while updating the utxo set a used utxo was not present in the set?')
-
-            for utxo in utxos_added:
-                # these are already deepcopies
-                if not self.utxo_set.utxo_add(utxo):
-                    logger.critical('When merging, while updating the utxo set a new utxo was invalid')
-
-
-
-        self.forks = current
+        self.forks = None
 
         return mergers
-     
+    
+    def update_utxoset_from_fork(self, fork: ForkBlock) -> None:
+        '''
+        Used to update the UTXO set with data up to but NOT INCLUDING this fork,
+        ie this will be expected to be the new root of the forktree.
+        I know, this is braindead but its convenient and used only twice
+
+        Args:
+            fork (ForkBlock): The fork in question
+        Return:
+            None: Should probably return _something_ but we'll get there when we get there
+        '''
+
+        if fork.parent is None: return
+
+        utxos_used, utxos_added = fork.parent.get_fork_utxoset()
+
+        logger.info('Updating UTXO Set with new data from fork')
+        utxos_used, utxos_added = fork.parent.get_fork_utxoset()
+
+        for utxo in utxos_used:
+            if not self.utxo_set.utxo_remove(utxo.txid, utxo.index):
+                logger.critical('While updating the utxo set a used utxo was not present in the set?')
+
+        for utxo in utxos_added:
+            # these are already deepcopies
+            if not self.utxo_set.utxo_add(utxo):
+                logger.critical('While updating the utxo set a new utxo was invalid')
+
+
     def get_height(self) -> int:
         '''
         Get the total chain height
