@@ -2,7 +2,7 @@
 from binascii import hexlify, unhexlify
 import json
 
-def data_hexdigest(data: bytes) -> str:
+def data_hexdigest(data: bytes, no_prefix: bool = False) -> str:
     '''
     Given a list of bytes return them in a hex format 0x...
 
@@ -13,7 +13,7 @@ def data_hexdigest(data: bytes) -> str:
         str: Formatted hex string
     '''
 
-    return f'0x{hexlify(data).decode()}'
+    return f'{"0x" if not no_prefix else ""}{hexlify(data).decode()}'
 
 def data_hexundigest(hexstring: str) -> bytes:
     '''

@@ -75,12 +75,12 @@ def main():
     
     print(a.balance())
     print(b.balance())
+    
+    chain.forks._display()
 
-    for _ in range(8):
-        newblock = sample_block(chain)
-        mine_block(newblock)
+    test = chain.forks.get_tallest_leaf()
 
-        chain.add_block(newblock)
+    chain.merge_all()
 
     print(chain.utxo_set.get_as_json())
 

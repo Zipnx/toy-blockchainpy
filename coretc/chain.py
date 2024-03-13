@@ -3,7 +3,6 @@ from typing import List, Tuple
 
 from coretc.forktree import ForkBlock
 from coretc.blocks import Block
-from coretc.utils.errors import deprecated, incomplete
 from coretc.utils.generic import data_hexdigest
 from coretc.utxo import UTXO
 from coretc.status import BlockStatus
@@ -143,7 +142,8 @@ class Chain:
         # TODO: Difficulty changes depending on the additional chain, also the UTXO set (to be implemented)
         
         block_hash = block.hash_sha256()
-
+        
+        # Check if the block is a duplicate already in the fork tree
         if self.forks is not None and block_hash in self.forks.hash_cache:
             return BlockStatus.INVALID_DUPLICATE
         
@@ -176,6 +176,7 @@ class Chain:
             logger.warn('Block Invalid: Incorrect PoW hash')
             return BlockStatus.INVALID_POW
 
+        ### CHECK THE TRANSACTIONS VALIDITY ###
         if (res := self.validate_transactions(block, fork)) == BlockStatus.VALID:
             logger.debug('Block and TXs validated successfully')
         else:
@@ -263,7 +264,7 @@ class Chain:
             for _ in range(linear_height - 1):
                 self.forks = self.forks.next[0]
             
-            self.update_utxoset_from_fork(self.forks)
+            self.update_utxoset_from_fork(self.forks.parent) # i hate myself and i hate this, this ALL NEEDS TO BE CLEARED
             self.forks.parent = None
 
             self.forks.regenerate_heights()
@@ -286,7 +287,7 @@ class Chain:
         # Add the modifications to the utxo set to the actual utxo_set
         # .parent accessible because the gc hasnt kicked in yet
         
-        self.update_utxoset_from_fork(current)
+        self.update_utxoset_from_fork(current.parent)
 
         self.forks = current
         self.forks.parent = None # Hopefully this will cause the objects to be cleared by the gc, but idfk
@@ -295,7 +296,6 @@ class Chain:
 
         return mergers
     
-    @incomplete
     def merge_all(self) -> int:
         '''
         Forcefully merge all blocks in the fork tree
@@ -304,25 +304,21 @@ class Chain:
         Return:
             int: Number of blocks merged
         '''
-
+        logger.info('Merging all Blocks from fork tree into the chain')
+        
         if self.forks is None: return 0
 
-        current: ForkBlock | None = self.forks
-        mergers = 0
+        leaf: ForkBlock = self.forks.get_tallest_leaf()
 
-        while current is not None:
-            self.blocks.append(current.block)
-            mergers += 1
-
-            if len(current.next) == None:
-                self.update_utxoset_from_fork(current)
-                break
-
-            current = current.get_tallest_subtree()
+        forkchain: List[Block] = leaf.get_block_route()
+        
+        for blk in forkchain:
+            self.blocks.append(blk)
+        self.update_utxoset_from_fork(leaf)
         
         self.forks = None
 
-        return mergers
+        return len(forkchain)
     
     def update_utxoset_from_fork(self, fork: ForkBlock) -> None:
         '''
@@ -336,12 +332,8 @@ class Chain:
             None: Should probably return _something_ but we'll get there when we get there
         '''
 
-        if fork.parent is None: return
-
-        utxos_used, utxos_added = fork.parent.get_fork_utxoset()
-
         logger.info('Updating UTXO Set with new data from fork')
-        utxos_used, utxos_added = fork.parent.get_fork_utxoset()
+        utxos_used, utxos_added = fork.get_fork_utxoset()
 
         for utxo in utxos_used:
             if not self.utxo_set.utxo_remove(utxo.txid, utxo.index):
@@ -363,7 +355,8 @@ class Chain:
         '''
 
         height = len(self.blocks)
-
+        
+        # If a fork exists add it's top height to the total height returned
         if self.forks is not None:
             height += self.forks.get_tree_height()
 
@@ -403,9 +396,10 @@ class Chain:
         # is added
 
         if self.forks is None:
+            # Will return the top hash of the blocks list in there is no active fork
             return self.blocks[-1].hash_sha256() if len(self.blocks) > 0 else b'\x00'*32
         
-        current: ForkBlock = self.forks 
+        current: ForkBlock | None = self.forks 
 
         while not len(current.next) == 0:
             current = current.get_tallest_subtree()

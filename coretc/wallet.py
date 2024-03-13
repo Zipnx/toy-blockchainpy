@@ -6,7 +6,6 @@ from coretc.utxo import UTXO
 from typing import List, Tuple, Literal
 from Crypto.PublicKey import ECC
 from hashlib import sha256
-from binascii import hexlify, unhexlify
 
 # alot of this code is from the previous version, and there is more to port
 
@@ -18,6 +17,9 @@ class Wallet:
         self.pk: ECC.EccKey = private_key.public_key()
 
         self.owned_utxos: List[UTXO] = []
+        
+        # A frozen UTXO is one whose ownership is not confirmed yet
+        self.frozen_utxos: List[UTXO] = []
 
     @staticmethod
     def generate():
@@ -64,7 +66,7 @@ class Wallet:
             str: Address string
         '''
 
-        return f'0x{sha256( self.get_pk_bytes() ).hexdigest()}'
+        return data_hexdigest(self.get_pk_bytes())
 
     def pick_utxo_inputs(self, amount: float, order: Literal['small', 'big']) -> Tuple[List[UTXO], float]:
         '''
@@ -130,6 +132,12 @@ class Wallet:
         )
         tx.make()
         
+        for used in used_inputs:
+            self.owned_utxos.remove(used)
+            self.frozen_utxos.append(used)
+
+        self.frozen_utxos.append(tx.get_output_references()[1])
+
         return tx
 
     def create_reward_transaction(self, reward: float) -> TX:

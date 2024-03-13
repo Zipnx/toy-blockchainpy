@@ -37,6 +37,7 @@ class UTXO:
             int.to_bytes(self.index)
         ).digest()
     
+
     def get_hash_with_outputs(self, outputs: List) -> bytes:
         '''
         Get the hash of the UTXO and it's outputs
@@ -49,7 +50,7 @@ class UTXO:
         return sha256(
             output_hashes + self.hash_sha256() # Yes this is not ideal
         ).digest()
-    
+ 
     def get_id(self) -> str:
         '''
         Retrieve the UTXO's identifier, defined as it's source txid and the index in the outputs
@@ -62,7 +63,7 @@ class UTXO:
             logger.error('Unable to get utxo id, transaction id not set.')
             return ''
 
-        return f'{hexlify(self.txid).decode()}:{self.index}'
+        return f'{data_hexdigest(self.txid, no_prefix = True)}:{self.index}'
 
     def to_json(self, is_input: bool = True) -> dict:
         '''
@@ -223,4 +224,7 @@ class UTXO:
     # will be needed for dicts
     def __hash__(self):
         return hash(self.hash_sha256())
+
+    def __eq__(self, other):
+        return self.get_id() == other.get_id() and isinstance(other, type(self))
 

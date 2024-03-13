@@ -262,7 +262,7 @@ class TX:
     
     def is_valid(self) -> bool:
         '''
-        Check if the nonce and txid is set
+        Check if the nonce is set
         NOTE: UTXOs are check using check_inputs & check_outputs
         '''
 

@@ -219,6 +219,21 @@ class ForkBlock:
                 cur_size = size
 
         return cur
+
+    def get_tallest_leaf(self):
+        '''
+        Return the tallest leaf in this subtree
+        Why tf had i not made this earlier
+        '''
+
+        current: ForkBlock = self
+
+        while len(current.next) > 0:
+
+            current = max(current.next, key = lambda k: k.height)
+
+        return current
+
     
     def get_fork_utxoset(self) -> Tuple[List[UTXO], List[UTXO]]:
         '''
@@ -239,18 +254,18 @@ class ForkBlock:
 
         while cur is not None:
             
-            for used in self.utxos_used:
+            for used in cur.utxos_used:
                 result_used.append(used)
 
-            for added in self.utxos_added:
+            for added in cur.utxos_added:
 
                 # In case where a UTXO is created inside the fork and used
                 if added in result_used:
                     continue
 
                 result_added.append(added)
-
-
+            
+            #print(len(result_used), len(result_added))
             cur = cur.parent
         
         return (result_used, result_added)
