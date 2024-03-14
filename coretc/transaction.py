@@ -5,6 +5,7 @@ from hashlib import sha256
 from typing import List
 from dataclasses import dataclass, field
 import os, logging
+from coretc.utils.errors import deprecated
 
 from coretc.utxo import UTXO
 from coretc.crypto import data_sign, data_verify
@@ -151,7 +152,8 @@ class TX:
             return None
 
         return obj
-
+    
+    @deprecated
     def set_utxo_indexes(self) -> None:
         '''
         Sets the UTXO indexes in ascending order
@@ -209,7 +211,6 @@ class TX:
         for utxo_input in self.inputs:
 
             if not utxo_input.is_valid_input(): return False
-
             if not utxo_input.unlock_spend(self.outputs): return False
 
         return True
@@ -255,7 +256,6 @@ class TX:
             TX: Returns the object itself (reference ofc)
         '''
 
-        self.set_utxo_indexes()
         self.gen_nonce()
 
         return self
@@ -274,8 +274,18 @@ class TX:
         '''
         Add the UTXO to the outputs and invalidate the cached txid
         '''
+
+        if len(self.outputs) == 0:
+            output.index = 0
+        else:
+            output.index = self.outputs[-1].index + 1
+
         self.outputs.append(output)
         self.txid_cache = b''
+
+    def add_outputs(self, outputs: List[UTXO]) -> None:
+        for utxo in outputs:
+            self.add_output(utxo)
 
     def add_input(self, input: UTXO) -> None:
         '''
@@ -283,6 +293,10 @@ class TX:
         '''
         self.inputs.append(input)
         self.txid_cache = b''
+
+    def add_inputs(self, inputs: List[UTXO]) -> None:
+        for utxo in inputs:
+            self.add_input(utxo)
 
 def hash_utxo_list(lst: List[UTXO]) -> bytes:
     '''

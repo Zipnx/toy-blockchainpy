@@ -309,22 +309,31 @@ class Chain:
         if self.forks is None: return 0
 
         leaf: ForkBlock = self.forks.get_tallest_leaf()
-
-        forkchain: List[Block] = leaf.get_block_route()
-        
-        for blk in forkchain:
-            self.blocks.append(blk)
-        self.update_utxoset_from_fork(leaf)
-        
         self.forks = None
 
-        return len(forkchain)
+        return self.commit_fork(leaf)
     
+    def commit_fork(self, fork: ForkBlock) -> int:
+        '''
+        Given a ForkBlock leaf, add the route blocks into permanent storage and update the utxo set
+
+        Args:
+            fork (ForkBlock): Fork which's path will be commited
+        Return:
+            int: Total commits
+        '''
+
+        blocks: List[Block] = fork.get_block_route()
+        self.update_utxoset_from_fork(fork)
+
+        for blk in blocks:
+            self.blocks.append(blk)
+
+        return len(blocks)
+
     def update_utxoset_from_fork(self, fork: ForkBlock) -> None:
         '''
-        Used to update the UTXO set with data up to but NOT INCLUDING this fork,
-        ie this will be expected to be the new root of the forktree.
-        I know, this is braindead but its convenient and used only twice
+        Used to update the UTXO set with data including this fork,
 
         Args:
             fork (ForkBlock): The fork in question

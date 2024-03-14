@@ -1,6 +1,6 @@
 
 from coretc.transaction import TX
-from coretc.utils.generic import data_hexdigest
+from coretc.utils.generic import data_hexdigest, dump_json
 from coretc.utxo import UTXO
 
 from typing import List, Tuple, Literal
@@ -126,10 +126,11 @@ class Wallet:
         for utxo in used_inputs:
             utxo.sign(self.sk, outputs)
 
-        tx = TX(
-            inputs = used_inputs,
-            outputs  = outputs
-        )
+        tx = TX()
+
+        tx.add_inputs(used_inputs)
+        tx.add_outputs(outputs)
+
         tx.make()
         
         for used in used_inputs:
@@ -151,12 +152,9 @@ class Wallet:
             TX: Resulting transaction
         '''
 
-        tx = TX(
-            inputs = [],
-            outputs = [
-                UTXO(owner_pk = self.get_pk_bytes(), amount = reward)
-            ]
-        )
-        tx.make()
+        tx = TX()
+        tx.add_output(UTXO(owner_pk = self.get_pk_bytes(), amount = reward))
 
+        tx.make()
+        
         return tx

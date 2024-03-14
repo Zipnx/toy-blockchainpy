@@ -156,13 +156,13 @@ class UTXO:
 
         pub = ECC.import_key(self.owner_pk)
 
-        if not data_verify(pub, self.get_hash_with_outputs(outputs), self.signature):
-            logger.debug('Signature verification of utxo input: ' + data_hexdigest(self.get_hash_with_outputs(outputs)))
+        if not (res := data_verify(pub, self.get_hash_with_outputs(outputs), self.signature)):
+            logger.warn(f'Invalid sig of utxo input: {self.get_id()}')
         
-        #dump_json(self.to_json())
+            #dump_json(self.to_json())
         #print('Output count:', len(outputs))
 
-        return data_verify(pub, self.get_hash_with_outputs(outputs), self.signature)
+        return res
 
     def is_valid(self) -> bool:
         '''
