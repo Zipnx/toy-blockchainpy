@@ -10,7 +10,7 @@ from copy import deepcopy
 
 from coretc import Chain, Block, TX, UTXO, mine_block, Wallet
 from coretc import ChainSettings, BlockStatus
-from coretc.utils.generic import data_hexdigest
+from coretc.utils.generic import data_hexdigest, dump_json
 
 def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 
@@ -53,7 +53,11 @@ def main():
 
     #print(json.dumps(a_send.to_json(), indent = 4))
     
-    
+    #    A    |    B    |     BAL A     |     DIFF B    | 
+    #  REWARD |         |  10 (+10)     |       0       | 
+    #  SEND   | REWARD  |  9.31 (-0.69) | 10.69 (+10.69)|
+    #
+    #
 
     newblock = sample_block(chain)
     newblock.transactions.append(a_send)
@@ -82,7 +86,7 @@ def main():
 
     chain.merge_all()
 
-    print(chain.utxo_set.get_as_json())
+    #dump_json(chain.utxo_set.get_as_json())
 
 if __name__ == '__main__':
     main()

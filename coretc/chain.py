@@ -3,7 +3,8 @@ from typing import List, Tuple
 
 from coretc.forktree import ForkBlock
 from coretc.blocks import Block
-from coretc.utils.generic import data_hexdigest
+from coretc.utils.errors import deprecated
+from coretc.utils.generic import data_hexdigest, dump_json
 from coretc.utxo import UTXO
 from coretc.status import BlockStatus
 from coretc.utils.list_utils import CombinedList
@@ -239,6 +240,51 @@ class Chain:
     
     def attempt_merge(self) -> int:
         '''
+        New merging function because the old one is dogshit, what was I thinking?
+
+        Return:
+            int: Count of blocks merged over
+        '''
+        
+        if self.forks is None: return 0
+
+        tree_height = self.forks.get_tree_height()
+        current: ForkBlock = self.forks
+        merge_count: int = 0
+
+        # This new function will be much more grounded, overcomplicating the previous one
+        # led to shit. This time we are going simple, if the tree is 6
+        # merge 3 blocks, simpler
+
+        if tree_height <= 5: return 0
+
+        while tree_height > 3:
+            # if the node is balanced there aint something we can do
+            if current.is_node_balanced(): break
+
+            self.blocks.append(current.block)
+            merge_count += 1
+            current = current.get_tallest_subtree()
+
+            if current is None:
+                logger.critical('Imma be real, no idea how this happened')
+                break
+            
+            tree_height -= 1
+
+        self.update_utxoset_from_fork(current.parent)
+        self.forks = current
+        logger.info(f'New fork root: {data_hexdigest(self.forks.block.hash_sha256())}')
+        self.forks.parent = None
+
+        self.forks.regenerate_heights()
+        self.forks.regenerate_cache()
+
+        return merge_count
+    
+    @deprecated
+    def old_attempt_merge(self) -> int:
+        '''
         Attempt to merge some blocks from the fork tree over to the list of permanently added
         blocks
 
@@ -341,6 +387,7 @@ class Chain:
             None: Should probably return _something_ but we'll get there when we get there
         '''
 
+
         logger.info('Updating UTXO Set with new data from fork')
         utxos_used, utxos_added = fork.get_fork_utxoset()
 
@@ -352,7 +399,6 @@ class Chain:
             # these are already deepcopies
             if not self.utxo_set.utxo_add(utxo):
                 logger.critical('While updating the utxo set a new utxo was invalid')
-
 
     def get_height(self) -> int:
         '''

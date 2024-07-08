@@ -12,6 +12,7 @@ class ChainSettings:
     mempool_path: str           = './data/mempool.dat'
 
     block_size_limit: int       = 1024 * 1024   # In bytes (Default = 1MB)
+    blocks_per_store_file: int  = 512
 
     target_blocktime: int       = 300           # In seconds
 

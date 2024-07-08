@@ -22,7 +22,7 @@ class UTXOSet:
     def load_utxos(self) -> bool:
         '''
         Load the UTXO set from the selected store file
-
+        
         Return:
             bool: Whether the loading was successful
         '''
@@ -164,4 +164,5 @@ class UTXOSet:
         self.utxos.append(utxo)
         return True
 
-
+    def utxo_count(self) -> int:
+        return len(self.utxos)

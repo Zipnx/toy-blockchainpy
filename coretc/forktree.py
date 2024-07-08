@@ -17,20 +17,7 @@ import logging
 logger = logging.getLogger('tc-core')
 
 class ForkBlock:
-    '''
-    ForkBlock class, used to represent blocks not yet permanently added to the blockchain
-    Forms a tree structure
-
-    After the tree has reached a certain height (merge len), 
-    a number of blocks (merged block count) get added to the blockchain permanently, 
-    and the tree gets restructured to a subtree of height merge_len - merged block count
-    '''
-
     def __init__(self, parent, blk: Block) -> None:
-        '''
-        Initialize a new fork block object using a block and it's predecessor in the chain
-        '''
-        
         self.parent: ForkBlock | None = parent
         self.block:  Block = blk
         self.next:   List[ForkBlock] = []
@@ -43,7 +30,7 @@ class ForkBlock:
 
         # This is only changed for the root node
         self.hash_cache: dict[bytes, ForkBlock] = {}
-
+        
         # Store used and new utxos from the block
         for transaction in self.block.transactions:
             self.utxos_used.extend(deepcopy(transaction.inputs))
@@ -54,12 +41,15 @@ class ForkBlock:
                 output.txid = transaction.get_txid()
 
             self.utxos_added.extend(tx_outputs_initial)
+
     
     def append_block(self, new_block: Block):
         '''
         Create a new ForkBlock and add it to the next List, returns a reference to the new object
         ! DOES NO VALIDATION, BLOCK MUST BE VALIDATED INDIVIDUALLY
         
+        Updates the heights
+
         Return:
             ForkBlock: Reference to the new object
         '''
@@ -80,7 +70,7 @@ class ForkBlock:
         self.next.append(new_fb)
 
         return new_fb
-    
+
     def block_hash_exists(self, block_hash: bytes) -> bool:
         '''
         Given a Block's hash, check if it exists in the hash cache of the fork tree
@@ -162,19 +152,23 @@ class ForkBlock:
 
         return count
 
-    def get_tree_height(self) -> int:
+    def get_tree_height(self, useCachedHeight: bool = True) -> int:
         '''
-        Return the height of the subtree
+        Returns the height of the subtree
 
+        Args:
+            useCachedHeight (bool=True): Whether it will use the set height cache or regenerate it
         Return:
             int: Tree height
         '''
-        
+
+        if not useCachedHeight:
+            self.regenerate_heights()
+
         if len(self.next) == 0: return 1
-        
+
         return self.height + 1
-        #return max( [ blk.get_tree_height() for blk in self.next ] ) + 1
-    
+
     def is_node_balanced(self) -> bool:
         '''
         Returns true if all child nodes have the same height
@@ -189,14 +183,13 @@ class ForkBlock:
 
         cmp_height = self.next[0].get_tree_height()
 
-        for blk in self.next: # yes, the start node doesnt need to be checked, will fix sometime
+        for blk in self.next[1:]:
             
             if not blk.get_tree_height() == cmp_height:
                 return False
 
-        return True
-
-
+        return True 
+    
     def get_tallest_subtree(self):
         '''
         Return the tallest subtree
@@ -219,7 +212,7 @@ class ForkBlock:
                 cur_size = size
 
         return cur
-
+    
     def get_tallest_leaf(self):
         '''
         Return the tallest leaf in this subtree
@@ -233,7 +226,6 @@ class ForkBlock:
             current = max(current.next, key = lambda k: k.height)
 
         return current
-
     
     def get_fork_utxoset(self) -> Tuple[List[UTXO], List[UTXO]]:
         '''
@@ -251,6 +243,8 @@ class ForkBlock:
         result_added: List[UTXO] = list()
 
         cur: ForkBlock = self
+        
+        #route: List[UTXO] = self.get_block_route()
 
         while cur is not None:
             
@@ -261,6 +255,7 @@ class ForkBlock:
 
                 # In case where a UTXO is created inside the fork and used
                 if added in result_used:
+                    result_used.remove(added)
                     continue
 
                 result_added.append(added)
@@ -291,7 +286,7 @@ class ForkBlock:
             self.hash_cache = cache
 
         return cache
-        
+    
     def regenerate_heights(self, start: bool = True) -> int:
         '''
         Recursive function that set's every forkblock's height
@@ -304,10 +299,10 @@ class ForkBlock:
             logger.info('Recalculating heights in fork tree')
 
         if len(self.next) == 0:
-            self.height = 1
-            return 1
+            self.height = 0
+            return 0
 
-        self.height = max( [blk.regenerate_heights(start = False) for blk in self.next] )
+        self.height = max( [blk.regenerate_heights(start = False) for blk in self.next] ) + 1
         return self.height
 
     def _rich_get_tree(self, tree: Tree | None = None) -> Tree:
@@ -317,6 +312,7 @@ class ForkBlock:
         
         data  = f'Hash: 0x{hexlify(self.block.hash_sha256()).decode()}\n'
         data += f'Prev: 0x{hexlify(self.block.previous_hash).decode()}\n'
+        data += f'Fork Height: {self.height}\n'
         data += f'TXs:  {len(self.block.transactions)} | USED UTXOS: {len(self.utxos_used)} | NEW UTXOS: {len(self.utxos_added)}'
 
         panel = Panel.fit(data)
@@ -333,3 +329,4 @@ class ForkBlock:
 
         console = Console()
         console.print(self._rich_get_tree())
+
