@@ -10,6 +10,7 @@ from coretc.status import BlockStatus
 from coretc.utils.list_utils import CombinedList
 from coretc.settings import ChainSettings
 from coretc.utxoset import UTXOSet
+from coretc.blockstorage import BlockStorage
 
 from binascii import hexlify
 import json, time
@@ -41,7 +42,9 @@ class Chain:
         self.blocks: List[Block] = [] 
 
         self.forks: ForkBlock | None = None
-
+        
+        self.block_store: BlockStorage = BlockStorage(settings.block_data_directory,
+                                                      settings.blocks_per_store_file)
         self.utxo_set: UTXOSet = UTXOSet(self.opts.utxo_set_path)
         
         # TODO: Do checks here
@@ -161,8 +164,13 @@ class Chain:
         ### CHECK THE PREVIOUS HASH ###
 
         if len(reference_chain) == 0:
-            if not block.previous_hash == b'\x00'*32:
-                return BlockStatus.INVALID_PREVHASH
+            if self.block_store.height > 0:
+                if not block.previous_hash == self.block_store.get_store_tophash():
+                    return BlockStatus.INVALID_PREVHASH
+
+            else:
+                if not block.previous_hash == b'\x00'*32:
+                    return BlockStatus.INVALID_PREVHASH
         else:
             if not block.previous_hash == reference_chain[-1].hash_sha256():
                 return BlockStatus.INVALID_PREVHASH
@@ -403,13 +411,12 @@ class Chain:
     def get_height(self) -> int:
         '''
         Get the total chain height
-        NOTE: This must be made to include the stores blocks in the future
 
         Return:
             int: Total chain height
         '''
 
-        height = len(self.blocks)
+        height = len(self.blocks) + self.block_store.height
         
         # If a fork exists add it's top height to the total height returned
         if self.forks is not None:
@@ -452,6 +459,11 @@ class Chain:
 
         if self.forks is None:
             # Will return the top hash of the blocks list in there is no active fork
+
+            if len(self.blocks) == 0 and self.block_store.height > 0:
+                # Get the previous hash from the block storage
+                return self.block_store.get_store_tophash()
+
             return self.blocks[-1].hash_sha256() if len(self.blocks) > 0 else b'\x00'*32
         
         current: ForkBlock | None = self.forks 

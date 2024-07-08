@@ -19,9 +19,11 @@ logger = logging.getLogger('tc-core')
 class BlockStorage:
     def __init__(self, store_directory: str, blocks_per_file: int):
         
-        logger.info(f'Initializing BlockStorage {store_directory}, blocksperfile={blocks_per_file}')
-
-        self.store_dir = store_directory
+        logger.debug(f'Initializing BlockStorage {store_directory}, blocksperfile={blocks_per_file}')
+        
+        
+        self.store_dir = store_directory + ('/' if store_directory[-1] != '/' else '')
+        
         self.blocks_per_file = blocks_per_file
 
         self.block_cache: Mapping[int, Block] = {}
@@ -54,7 +56,51 @@ class BlockStorage:
             return
 
         self.height = (len(filenames) - 1)*self.blocks_per_file + block_count
+
+        logger.info(f'Found {self.height} blocks stored')
     
+    def get_store_tophash(self) -> bytes:
+        '''
+        Get the tophash that is _stored_
+
+        Returns:
+            bytes: SHA-256 Hash of the block
+        '''
+        
+        if self.height <= 0:
+            return b''
+
+        storefile = (self.height - 1) // self.blocks_per_file
+
+        topblocks = self.get_store_file_blocks(storefile)
+
+        return topblocks[-1].hash_sha256()
+
+    def get_store_file_blocks(self, storefile: int | str) -> List[Block]:
+        '''
+        Get all blocks in a storefile
+
+        Args:
+            storefile (int | str): Storefile to read
+        Returns:
+            List[Block]: Resulting block list
+        '''
+        block_count, raw_data = self.get_storefile_json(storefile)
+
+        result: List[Block] = []
+
+        for entry in raw_data:
+            
+            block_object: Block | None = Block.from_json(entry)
+
+            if block_object is None:
+                logger.critical('Invalid block data when loading from store file!')
+                return []
+
+            result.append(block_object)
+
+        return result
+
     def store_blocks(self, blocks: List[Block]) -> bool:
         '''
         Get a list of blocks and add them to the store

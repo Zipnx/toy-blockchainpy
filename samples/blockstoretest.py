@@ -30,7 +30,7 @@ def main():
     
     chain.merge_all()
 
-    store = BlockStorage('./data/', 8)
+    store = BlockStorage('./data/blocks/', 8)
 
     store.store_blocks(chain.blocks)
     

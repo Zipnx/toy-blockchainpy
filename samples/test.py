@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import time
 from rich import print_json
 from coretc import Chain, ChainSettings, Block, BlockStatus, mine_block
+from coretc.utils.generic import data_hexdigest
 
 def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 
@@ -22,13 +23,32 @@ def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 
 def main():
 
-    chain: Chain = Chain(ChainSettings(initial_difficulty = 0x2000FFFF))
+    chain: Chain = Chain(ChainSettings())
+    
+    #print(data_hexdigest(chain.get_tophash()))
+    
+    newblock = sample_block(chain)
+        
+    res = chain.add_block(newblock)
+    print(res)
+
+    print_json(data = newblock.to_json())
+    
+
+    newblock = sample_block(chain)
+        
+    res = chain.add_block(newblock)
+    print(res)
+
+    print_json(data = newblock.to_json())
+
+    return
 
     for i in range(16):
         #print(f'{f" Block #{i} ":=^20}')
 
         newblock = sample_block(chain)
-
+        
         res = chain.add_block(newblock)
         
         print_json(data = newblock.to_json())
