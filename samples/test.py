@@ -22,13 +22,17 @@ def sample_block(bc: Chain, prev: bytes = b'') -> Block:
     return blk
 
 def main():
+    
+    os.system('rm ./data/blocks/*.dat')
 
     chain: Chain = Chain(ChainSettings())
 
     #print(data_hexdigest(chain.get_tophash()))
      
-    for i in range(128):
-        #print(f'{f" Block #{i} ":=^20}')
+    for i in range(90):
+        print(f'{f" Block #{i+1} ":=^20}')
+        if i+1 > 60:
+            input(f'Enter to mine block {i+1}')
 
         newblock = sample_block(chain)
         

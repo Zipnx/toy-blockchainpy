@@ -75,6 +75,31 @@ class BlockStorage:
         topblocks = self.get_store_file_blocks(storefile)
 
         return topblocks[-1].hash_sha256()
+    
+    def get_block(self, blockheight: int) -> Block | None:
+        '''
+        Get the block object at a specified height
+
+        Args:
+            blockheight (int): Target height
+        Returns:
+            Block: Block object or None if it does not exist
+        '''
+        
+        if blockheight > self.height: return None
+
+        chunk = (blockheight - 1) // self.blocks_per_file
+        
+        #print('Target height:', blockheight, 'Chunk:', chunk)
+
+        blocks = self.get_store_file_blocks(chunk)
+
+        # Get the specified block
+        target_index = (blockheight - 1) % 32
+
+        if target_index >= len(blocks): return None
+
+        return blocks[target_index]
 
     def get_store_file_blocks(self, storefile: int | str) -> List[Block]:
         '''
@@ -167,7 +192,6 @@ class BlockStorage:
         Returns:
             Tuple[int, List]: Tuple of the block count and list of block json objects
         '''
-        
         if isinstance(storefile, int):
             storefile = f'{hex(storefile)[2:]}.dat'
 

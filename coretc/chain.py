@@ -1,6 +1,7 @@
 
 from typing import List, Tuple
 
+from coretc.difficulty import adjustDifficulty
 from coretc.forktree import ForkBlock
 from coretc.blocks import Block
 from coretc.utils.errors import deprecated, incomplete
@@ -176,7 +177,7 @@ class Chain:
                 return BlockStatus.INVALID_PREVHASH
         
         ### CHECK IF THE DIFFICULTY LEVEL IS VALID ###
-        if not block.difficulty_bits == self.difficulty:
+        if not block.difficulty_bits == self.get_difficulty(fork):
             logger.warn('Block Invalid: Incorrect difficulty level')
             return BlockStatus.INVALID_DIFFICULTY
         
@@ -288,6 +289,34 @@ class Chain:
         self.forks.regenerate_heights()
         self.forks.regenerate_cache()
         
+        # Update the established difficulty
+        old_chunk = (self.get_established_height() - merge_count - 1) // self.settings.difficulty_adjustment
+        new_chunk = (self.get_established_height() - 1) // self.settings.difficulty_adjustment
+        
+        print(old_chunk, new_chunk)
+
+        if old_chunk < new_chunk and not self.get_established_height() < self.settings.difficulty_adjustment:
+            chunk_start = (old_chunk * self.settings.difficulty_adjustment) + 1
+            chunk_end   = new_chunk * self.settings.difficulty_adjustment
+
+            logger.debug(f'Adjusting established difficulty {chunk_start} - {chunk_end}')
+
+            start: Block | None = self.get_block_by_height(chunk_start)
+            end:   Block | None = self.get_block_by_height(chunk_end)
+
+            if (start is None or end is None):
+                logger.critical(
+                    f"Error calculating established difficulty of {chunk_start} and {chunk_end}")
+            else:
+                delta: int = end.timestamp - start.timestamp
+                seconds_per_block = delta / self.settings.difficulty_adjustment
+                seconds_per_block = max(seconds_per_block, 0.01)
+                deviation = self.settings.target_blocktime / seconds_per_block
+
+                self.difficulty = adjustDifficulty(self.difficulty, deviation)
+                logger.debug(f'New difficulty: {hex(self.difficulty)}')
+                logger.debug(f'Deviation: {deviation:.2f}')
+
         # Try to save block to the block store, should match the blocks per file ideally
         while len(self.blocks) > self.settings.blocks_per_store_file:
             chunk_size = self.settings.blocks_per_store_file - (self.block_store.height % self.settings.blocks_per_store_file)
@@ -360,6 +389,42 @@ class Chain:
             if not self.utxo_set.utxo_add(utxo):
                 logger.critical('While updating the utxo set a new utxo was invalid')
 
+    def get_block_by_height(self, target_height: int) -> Block | None:
+        '''
+        Given a height value, retrieve the block at that given height
+        NOTE: This only returns for blocks in the established zone, or in the longest fork
+
+        Args:
+            target_height (int): Height of block to retrieve
+
+        Returns:
+            Block | None: Block object that was requested or none if there is no block at that height
+
+        '''
+
+        if target_height <= self.block_store.height:
+            # Get from the stored block
+
+            return self.block_store.get_block(target_height)
+        
+        if target_height <= self.get_established_height():
+            # Get from the blocks list
+            index = target_height - self.block_store.height - 1
+            
+            return self.blocks[index]
+
+        # The block should be in one of the forks, else it does not exist
+        fork, block_route = self.get_longest_fork()
+
+        if fork is None: return None
+
+        index = target_height - self.get_established_height() - 1
+
+        if index >= len(block_route): return None
+
+        return block_route[index]
+
+
     def get_height(self) -> int:
         '''
         Get the total chain height
@@ -375,7 +440,16 @@ class Chain:
             height += self.forks.get_tree_height()
 
         return height
+    
+    def get_established_height(self) -> int:
+        '''
+        Get the height of blocks that are not in forks
 
+        Returns:
+            int: The count of the stored and soft stored blocks
+        '''
+
+        return self.block_store.height + len(self.blocks)
 
     def get_top_blockreward(self) -> float:
         '''
@@ -384,6 +458,60 @@ class Chain:
         '''
 
         return self.blockreward
+
+    def get_difficulty(self, forkblock: ForkBlock | None) -> int:
+        '''
+        Get the difficulty depending on the fork.
+        This most often returns just the chain diffulty parameter, but if the 
+        difficulty is adjusted within a fork, this is necessary
+
+        Args:
+            top_hash (bytes): Hash of which the following difficulty will be returned
+        Returns:
+            int: Difficulty bits
+        '''
+        
+        if forkblock is None: return self.difficulty
+        
+
+        route: List[Block] = forkblock.get_block_route()
+        route_len: int = len(route)
+
+        establ_chunk = (self.get_established_height() - 1) // self.settings.difficulty_adjustment
+        forked_chunk = (self.get_established_height() + route_len)         // self.settings.difficulty_adjustment
+        
+        #print('Chunk A:', establ_chunk, 'Chunk B:', forked_chunk)
+
+        if establ_chunk < 0: return self.difficulty
+
+        if not establ_chunk < forked_chunk:
+            return self.difficulty
+        
+        #print('!!! Dynamic difficulty adjustment triggered !!!')
+
+        # Here a difficulty needs to be calculated
+        chunk_start = (establ_chunk * self.settings.difficulty_adjustment) + 1
+        chunk_end   = forked_chunk * self.settings.difficulty_adjustment
+        
+        # Get the timestamps of the start and end
+        start: Block | None = self.get_block_by_height(chunk_start)
+
+        index = ((self.get_established_height() + route_len) - chunk_end - 1)
+
+        end: Block   | None = route[index]
+
+        if (start is None) or (end is None):
+            logger.critical(f"Error calculating diffulty of range {chunk_start} and {chunk_end}")
+            return -1
+
+        delta: int = end.timestamp - start.timestamp
+        
+        seconds_per_block = delta / self.settings.difficulty_adjustment
+        seconds_per_block = max(seconds_per_block, 0.01)
+        
+        deviation = self.settings.target_blocktime / seconds_per_block
+
+        return adjustDifficulty(self.difficulty, deviation)
 
     def get_top_difficulty(self) -> int:
         '''
@@ -394,7 +522,31 @@ class Chain:
             int: Difficulty bits
         '''
         
+        return self.get_difficulty(self.get_longest_fork()[0])
+    
+    def get_established_difficulty(self):
         return self.difficulty
+
+    def get_longest_fork(self) -> Tuple[ForkBlock | None, List[Block]]:
+        '''
+        Returns the current longest fork, including the fork's leaf
+        and the block route towards it
+
+        Returns:
+            Tuple[ForkBlock, List[Block]]: Leaf and the route
+        '''
+
+        if self.forks is None:
+            return (None, [])
+
+        cur: ForkBlock = self.forks
+
+        while not len(cur.next) == 0:
+            cur = cur.get_tallest_subtree()
+        
+        route: List[Block] = cur.get_block_route()
+
+        return (cur, route)
 
     def get_tophash(self) -> bytes:
         '''

@@ -124,7 +124,7 @@ class ForkBlock:
         '''
 
         blocks: List[Block] = []
-        current: ForkBlock = self
+        current: ForkBlock | None = self
         
         while current is not None:
             blocks.append(current.block)
@@ -135,7 +135,23 @@ class ForkBlock:
 
         return blocks
 
-        
+    def get_block_route_len(self) -> int:
+        '''
+        Return the number of total blocks reaching this fork node
+
+        Return:
+            int: Length of this fork
+        '''
+
+        length: int = 0
+
+        current: ForkBlock | None = self
+
+        while current is not None:
+            length += 1
+            current = current.parent
+
+        return length
 
     def get_children_count(self) -> int:
         '''
