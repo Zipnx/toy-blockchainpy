@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 from coretc.forktree import ForkBlock
 from coretc.blocks import Block
-from coretc.utils.errors import deprecated
+from coretc.utils.errors import deprecated, incomplete
 from coretc.utils.generic import data_hexdigest, dump_json
 from coretc.utxo import UTXO
 from coretc.status import BlockStatus
@@ -31,7 +31,7 @@ class Chain:
         '''
         Initialize a new chain
         '''
-        
+        self.settings = settings
         logger.debug('Initialized new chain')
         
         self.opts = settings
@@ -287,6 +287,16 @@ class Chain:
 
         self.forks.regenerate_heights()
         self.forks.regenerate_cache()
+        
+        # Try to save block to the block store, should match the blocks per file ideally
+        while len(self.blocks) > self.settings.blocks_per_store_file:
+            chunk_size = self.settings.blocks_per_store_file - (self.block_store.height % self.settings.blocks_per_store_file)
+
+            logger.debug(f'Permanently storing {chunk_size} blocks.')
+
+            self.block_store.store_blocks(self.blocks[:chunk_size])
+
+            self.blocks = self.blocks[chunk_size:]
 
         return merge_count
     
@@ -399,6 +409,8 @@ class Chain:
         logger.info('Updating UTXO Set with new data from fork')
         utxos_used, utxos_added = fork.get_fork_utxoset()
 
+        logger.debug(f'Fork UTXO Total: {len(utxos_used)} Used, {len(utxos_added)} Added.')
+
         for utxo in utxos_used:
             if not self.utxo_set.utxo_remove(utxo.txid, utxo.index):
                 logger.critical('While updating the utxo set a used utxo was not present in the set?')
@@ -472,4 +484,28 @@ class Chain:
             current = current.get_tallest_subtree()
 
         return current.block.hash_sha256()
+    
+    @incomplete
+    def verify_chain(self) -> bool:
+        '''
+        Used to verify the validity of the entire chain, including stored UTXOs
 
+        Returns:
+            bool: Whether it's valid or not
+        '''
+        
+        return False
+
+    def save(self) -> None:
+        '''
+        To be executed before exiting. This stores all established blocks in the storage
+        Also saves the UTXO set and (in the future TODO) MemPool
+        '''
+
+        logger.debug('Saving data.')
+        self.block_store.store_blocks(self.blocks)
+        self.blocks.clear()
+        
+        logger.debug(f'Saved {len(self.blocks)} to block store')
+
+        self.utxo_set.save_utxos()

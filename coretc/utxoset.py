@@ -45,8 +45,6 @@ class UTXOSet:
             logger.error('UTXO Set file contains invalid data!')
             return False
 
-        if not data['height'].isdigit(): return False
-
         self.currently_scanned_height = int(data['height'])
 
         for utxo_json in data['outputs']:

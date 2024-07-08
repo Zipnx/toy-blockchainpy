@@ -37,8 +37,6 @@ source dev_setup.sh
 
 You could also add it permanently but imma leave that up to you
 
-Will add more stuff when i got time (TXs & UTXOs, maybe a proper chain)
-
 ## TODO:
 - [x] Transactions
 - [ ] Major cleanup and documentation of code 
@@ -47,6 +45,6 @@ Will add more stuff when i got time (TXs & UTXOs, maybe a proper chain)
 - [ ] An RPC node server (Most likely Flask)
 - [ ] Basic wallet app (todo way later)
 - [ ] Unit tests UTXO and TX validation
-- [ ] Store blocks in store automatically
+- [x] Store blocks in store automatically
 - [ ] Caching in block storage
 - [ ] Block difficulty adjustment
