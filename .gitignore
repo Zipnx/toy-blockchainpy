@@ -2,6 +2,7 @@
 
 __pycache__/
 
+/data
 /.mypy_cache
 /.git
 /venv
