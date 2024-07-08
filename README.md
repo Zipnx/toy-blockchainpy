@@ -37,6 +37,16 @@ source dev_setup.sh
 
 You could also add it permanently but imma leave that up to you
 
+### Node
+
+The node is still pretty early on but can be run with
+
+```
+python3 node/
+```
+
+Will probably add the adjustable difficulty before going on with the RPC
+
 ## TODO:
 - [x] Transactions
 - [ ] Major cleanup and documentation of code 

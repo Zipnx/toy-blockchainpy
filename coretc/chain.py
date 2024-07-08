@@ -299,67 +299,7 @@ class Chain:
             self.blocks = self.blocks[chunk_size:]
 
         return merge_count
-    
-    @deprecated
-    def old_attempt_merge(self) -> int:
-        '''
-        Attempt to merge some blocks from the fork tree over to the list of permanently added
-        blocks
 
-        Return:
-            int: Count of blocks merged over
-        '''
-
-        # TODO: Again, terrible inefficiencies, can be fixed with some caching
-
-        if self.forks is None: return 0
-        
-        tree_height = self.forks.get_tree_height()
-        linear_height = self.forks.get_linear_count()
-        current: ForkBlock = self.forks
-        mergers = 0
-
-        if tree_height <= 6: return 0
-        
-        logger.info('Merging Blocks from fork tree into the chain')
-        
-        # Tf was i thinking while writing this shit
-        if linear_height >= 3:
-            for _ in range(linear_height - 1):
-                self.forks = self.forks.next[0]
-            
-            self.update_utxoset_from_fork(self.forks.parent) # i hate myself and i hate this, this ALL NEEDS TO BE CLEARED
-            self.forks.parent = None
-
-            self.forks.regenerate_heights()
-            self.forks.regenerate_cache()
-            return linear_height - 1
-
-        while tree_height >= 3:
-            if current.is_node_balanced(): break 
-            
-            self.blocks.append(current.block)
-            mergers += 1
-            current = current.get_tallest_subtree()
-            
-            if current is None:
-                print('???')
-                break
-
-            tree_height -= 1
-        
-        # Add the modifications to the utxo set to the actual utxo_set
-        # .parent accessible because the gc hasnt kicked in yet
-        
-        self.update_utxoset_from_fork(current.parent)
-
-        self.forks = current
-        self.forks.parent = None # Hopefully this will cause the objects to be cleared by the gc, but idfk
-        self.forks.regenerate_heights()
-        self.forks.regenerate_cache() # Performance hit
-
-        return mergers
-    
     def merge_all(self) -> int:
         '''
         Forcefully merge all blocks in the fork tree
