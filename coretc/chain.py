@@ -340,7 +340,7 @@ class Chain:
         '''
 
         # Try to save block to the block store, should match the blocks per file ideally
-        while len(self.blocks) > self.settings.blocks_per_store_file:
+        while len(self.blocks) > self.settings.blocks_per_store_file and not self.settings.debug_dont_save:
             chunk_size = self.settings.blocks_per_store_file - (self.block_store.height % self.settings.blocks_per_store_file)
 
             logger.debug(f'Permanently storing {chunk_size} blocks.')
@@ -686,6 +686,8 @@ class Chain:
         To be executed before exiting. This stores all established blocks in the storage
         Also saves the UTXO set and (in the future TODO) MemPool
         '''
+
+        if self.settings.debug_dont_save: return
 
         logger.debug('Saving data.')
         self.block_store.store_blocks(self.blocks)

@@ -5,13 +5,15 @@ from coretc import Chain, ForkBlock
 from coretc import ChainSettings, BlockStatus
 
 from coretc.blocks import Block
-from tests.helpers import create_example_block 
+from tests.helpers import create_empty_chain, create_example_block 
+
+CHAIN_PATH = './pytests-chain-tmp/'
 
 class TestChain(unittest.TestCase):
 
     def test_block_addition(self) -> None:
 
-        chain = Chain(ChainSettings())
+        chain = create_empty_chain() 
         
         self.assertEqual(chain.get_tophash(), b'\x00'*32,
                          'Empty chain\'s tophash must be a null hash')
@@ -59,7 +61,7 @@ class TestChain(unittest.TestCase):
 
     def test_block_denial(self) -> None:
 
-        chain = Chain(ChainSettings())
+        chain = create_empty_chain()
 
         newblock = create_example_block(prev = b'\x69'*32)
 

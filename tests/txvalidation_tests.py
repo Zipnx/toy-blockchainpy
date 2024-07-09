@@ -6,13 +6,13 @@ from coretc import ChainSettings, BlockStatus
 
 from coretc.blocks import Block
 from coretc.miner import mine_block
-from tests.helpers import create_example_block, create_example_tx, create_example_utxo
+from tests.helpers import create_empty_chain, create_example_block, create_example_tx, create_example_utxo
 
 class TestTXValidation(unittest.TestCase):
     
     def test_block_reward(self) -> None:
 
-        chain = Chain(ChainSettings())
+        chain = create_empty_chain()
         a = Wallet.generate()
 
         self.assertEqual(a.balance(), 0)

@@ -59,4 +59,4 @@ Will probably add the adjustable difficulty before going on with the RPC
 - [ ] Caching in block storage
 - [x] Block difficulty adjustment
 - [ ] Better error handling
-- [ ] Fix the tests. After adding block storage they broke
+- [x] Fix the tests. After adding block storage they broke

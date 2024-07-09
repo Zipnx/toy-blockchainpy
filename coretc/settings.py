@@ -4,7 +4,8 @@ from dataclasses import dataclass
 @dataclass
 class ChainSettings:
     debug_stdout_enabled: bool  = True
-    debug_fileout_enabled:bool  = True
+    debug_fileout_enabled: bool = True
+    debug_dont_save: bool       = False
 
     debug_log_dir: str          = './data/debug/'
     block_data_directory: str   = './data/blocks/'
@@ -16,7 +17,7 @@ class ChainSettings:
 
     target_blocktime: int       = 10            # In seconds. Set to 300 when done
 
-    initial_blockreward: float  = 10.           
+    initial_blockreward: float  = 10.               
     initial_difficulty: int     = 0x2000FFFF
 
     difficulty_adjustment: int  = 32 # Every how many blocks is difficulty adjusted, when done this should be 512 (same as blocks per store file)
