@@ -43,7 +43,7 @@ class TX:
         Return:
             bytes: The 32 byte hash
         '''
-        
+       
         if self._txid_cache and not ignore_cache: return self._txid_cache
 
         return self.hash_sha256()
@@ -197,6 +197,17 @@ class TX:
             funds += utxo.amount
 
         return funds
+        
+    def transaction_fee(self) -> float:
+        '''
+        Get the amount of tokens that the miner can claim as a fee
+        (Unaccounted ingoing funds)
+
+        Returns:
+            float: Amount of tokens claimable by miners
+        '''
+
+        return self.ingoing_funds() - self.outgoing_funds()
 
     def check_inputs(self) -> bool:
         '''

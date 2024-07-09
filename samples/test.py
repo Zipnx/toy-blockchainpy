@@ -23,16 +23,15 @@ def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 
 def main():
     
-    os.system('rm ./data/blocks/*.dat')
+    #os.system('rm ./data/blocks/*.dat')
+    os.remove('./data/blocks/10.dat')
 
     chain: Chain = Chain(ChainSettings())
 
     #print(data_hexdigest(chain.get_tophash()))
-     
-    for i in range(90):
-        print(f'{f" Block #{i+1} ":=^20}')
-        if i+1 > 60:
-            input(f'Enter to mine block {i+1}')
+    input() 
+    for i in range(7):
+        print(f'{f" Block #{chain.get_height() + 1} ":=^20}')
 
         newblock = sample_block(chain)
         
@@ -44,6 +43,7 @@ def main():
     
 
     #chain.forks._display()
+    chain.merge_all()
     chain.save()
 
 

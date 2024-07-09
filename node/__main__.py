@@ -12,7 +12,7 @@ rpc = RPC()
 
 @app.route('/')
 def homepage():
-    return 'ToyChain RPC Running'
+    return jsonify({'msg':'ToyChain RPC Running'})
 
 @app.route('/peers')
 def get_peers():

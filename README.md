@@ -52,9 +52,11 @@ Will probably add the adjustable difficulty before going on with the RPC
 - [ ] Major cleanup and documentation of code 
 - [x] Merging fork into chain
 - [x] Basic UTXO & TX Implementation
-- [ ] An RPC node server (Most likely Flask)
+- [ ] More of the RPC functionality
 - [ ] Basic wallet app (todo way later)
 - [ ] Unit tests UTXO and TX validation
 - [x] Store blocks in store automatically
 - [ ] Caching in block storage
-- [ ] Block difficulty adjustment
+- [x] Block difficulty adjustment
+- [ ] Better error handling
+- [ ] Fix the tests. After adding block storage they broke

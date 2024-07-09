@@ -76,6 +76,21 @@ class BlockStorage:
 
         return topblocks[-1].hash_sha256()
     
+    def get_store_topdiff(self) -> int:
+        '''
+        Get the top difficulty in the block storage
+
+        Returns:
+            int: Difficulty bits
+        '''
+
+        if self.height <= 0: return -1
+        storefile = (self.height - 1) // self.blocks_per_file
+
+        topblocks = self.get_store_file_blocks(storefile)
+
+        return topblocks[-1].difficulty_bits
+
     def get_block(self, blockheight: int) -> Block | None:
         '''
         Get the block object at a specified height
