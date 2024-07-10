@@ -1,6 +1,8 @@
 
 from dataclasses import dataclass
 
+# TODO: Add a penalty system at some point
+
 @dataclass(init = True)
 class Peer:
     host: str

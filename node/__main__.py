@@ -1,14 +1,28 @@
 
-import os,sys
+import os,sys,argparse
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from node.rpc import RPC
+from node.settings import RPCSettings, load_config
 
 import logging
 from flask import Flask, jsonify, request
 
+logger = logging.getLogger('chain-rpc')
+
+parser = argparse.ArgumentParser(description = 'Run a toychain node')
+parser.add_argument('directory', type = str, help = 'Directory of the node, containing the config and blockchain data')
+
+args = parser.parse_args()
+
 app = Flask(__name__)
-rpc = RPC()
+
+settings: RPCSettings | None = load_config(args.directory)
+if settings is None:
+    logger.critical('Unable to load settings!')
+    quit()
+
+rpc = RPC(settings)
 
 @app.route('/')
 def homepage():
@@ -62,7 +76,7 @@ def main():
     flask_log = logging.getLogger('werkzeug')
     flask_log.setLevel(logging.ERROR)
 
-    app.run(host = '127.0.0.1', port = 1993, debug = False)
+    app.run(host = settings.host, port = settings.port, debug = False)
 
 if __name__ == '__main__':
     main()

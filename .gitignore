@@ -3,6 +3,10 @@
 __pycache__/
 
 /data
+/node-data
+/node1
+/node2
+/node3
 /.mypy_cache
 /.git
 /venv

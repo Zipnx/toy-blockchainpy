@@ -24,13 +24,13 @@ def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 def main():
     
     #os.system('rm ./data/blocks/*.dat')
-    os.remove('./data/blocks/10.dat')
+    #os.remove('./data/blocks/10.dat')
 
     chain: Chain = Chain(ChainSettings())
 
     #print(data_hexdigest(chain.get_tophash()))
     input() 
-    for i in range(7):
+    for i in range(5):
         print(f'{f" Block #{chain.get_height() + 1} ":=^20}')
 
         newblock = sample_block(chain)

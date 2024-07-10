@@ -58,5 +58,6 @@ Will probably add the adjustable difficulty before going on with the RPC
 - [x] Store blocks in store automatically
 - [ ] Caching in block storage
 - [x] Block difficulty adjustment
-- [ ] Better error handling
-- [x] Fix the tests. After adding block storage they broke
+- [ ] Better error handling, even more of it
+- [x] Tool to setup a node quickly
+- [ ] Quick: Add a node label & version parameter

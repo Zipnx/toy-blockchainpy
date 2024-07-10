@@ -8,15 +8,17 @@ from coretc.utils.generic import data_hexdigest, data_hexundigest
 from threading import Lock
 
 from node.peers import Peer
+from node.settings import RPCSettings
 
 logger = logging.getLogger('chain-rpc')
 
 class RPC:
-    def __init__(self):
+    def __init__(self, settings: RPCSettings):
         logger.info('Initialized RPC')
         
+        self.settings = settings
         self.lock = Lock()
-        self.chain: Chain = Chain(ChainSettings())
+        self.chain: Chain = Chain(settings.get_chainsettings())
         self.peers: List[Peer] = []
 
     def get_chain_height(self) -> int:
