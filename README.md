@@ -1,14 +1,16 @@
 # Toy BlockChain
 
-This is a rework of a similar test chain I made a while ago, which's code is
-borderline unreadable (let's be real, this will end up like that again)
+ToyChain, per it's name, is a blockchain meant to be used to toy around and learn more
+about the functionalities of blockchain distributed systems. Written in python for ease.
+The goal of this project is to enable more people to learn, experiment, and hopefully develop their own projects.
 
-Built to be easy to understand how a blockchain
-works, in conjunction with PoW and such
+At the final stages, I'd like to implement features such as RingCT, then again, should prob make sure TXs work to begin with
 
 ## Getting Started
 
-Setup a venv environment, activate it and install the required packages:
+### Setup
+
+Setup a venv environment, activate it and install the required modules:
 
 ```
 python3 -m venv ./venv/
@@ -16,36 +18,46 @@ source ./venv/bin/activate
 pip install -r requirements.py
 ```
 
-For now, run the sample scripts in the ./samples/ directory.
-
-```
-python3 samples/test.py
-```
-
-Or execute the test suite using 
-
-```
-python3 run_tests.py
-```
-
-You may also have to add the project directory in the PATH env variable.
-That can be done temporarily, by exporting manually or by running:
+The project's directory might have to be added to your PATH env variable.
+This can be done by exporting the value directly or by executing
 
 ```
 source dev_setup.sh
 ```
 
-You could also add it permanently but imma leave that up to you
+### Samples & Tests
+
+Some samples can be run in the ./samples/ directory
+
+```
+python3 samples/test.py
+```
+
+The test suite can also be executed by running:
+
+```
+python3 run_tests.py
+```
 
 ### Node
 
-The node is still pretty early on but can be run with
+The node is still in it's early days but can be used.
+
+To initialize a new node you can use:
 
 ```
-python3 node/
+python3 node/setup
 ```
 
-Will probably add the adjustable difficulty before going on with the RPC
+The above script will setup everything in a directory which will hold the node's data.
+It is extremely useful, when needing to run more than one node for testing purposes.
+
+Afterwards the node can be run by executing the following, with the path you specified
+in the setup
+
+```
+python3 node /path/to/node/directory
+```
 
 ## TODO:
 - [x] Transactions
@@ -60,4 +72,5 @@ Will probably add the adjustable difficulty before going on with the RPC
 - [x] Block difficulty adjustment
 - [ ] Better error handling, even more of it
 - [x] Tool to setup a node quickly
-- [ ] Quick: Add a node label & version parameter
+- [ ] Quick: Make sure a node cannot have itself as a peer
+- [ ] Quick: Make sure a node does not have duplicate peers

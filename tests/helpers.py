@@ -1,6 +1,9 @@
 
 from os.path import exists, isdir
+
 import os
+
+from coretc.wallet import Wallet
 from coretc import Chain, ChainSettings, Block, ForkBlock, TX, UTXO, mine_block
 
 CHAIN_PATH = './pytests-chain-tmp/'
@@ -25,10 +28,9 @@ def create_example_block(prev: bytes = b'\x00'*32, mine: bool = True) -> Block:
 def create_example_tx() -> TX:
     return TX([], [])
 
-def create_example_utxo() -> UTXO:
-    return UTXO(b'A'*32, 0.5, 0)
-
-
+def create_example_utxo(is_input: bool = False) -> UTXO:
+    return UTXO(b'A'*91, 0.5, 0, b'i'*32, b'I am in pain')
+    
 def forktree_from_json(structure: list, node: ForkBlock | None = None) -> ForkBlock:
 
     '''

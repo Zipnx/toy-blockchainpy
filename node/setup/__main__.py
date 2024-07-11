@@ -6,8 +6,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich import print_json
 
+import coretc.utils.valid_data as valid
+
 import node.setup.wizard_widgets as widget
-import node.setup.validate_data as valid
 import node.setup.create_config as conf
 
 def wizard(con: Console) -> tuple:

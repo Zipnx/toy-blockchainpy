@@ -8,14 +8,13 @@ from copy import deepcopy
 
 import bson, json, logging
 
-from coretc.utils.generic import dump_json
+from coretc.utils.generic import dump_json, load_bson_from_file
 
 from coretc.blocks import Block
+from coretc.utils.valid_data import valid_directory, valid_file
 
 logger = logging.getLogger('tc-core')
    
-# TODO: Error handling
-
 class BlockStorage:
     def __init__(self, store_directory: str, blocks_per_file: int):
         
@@ -38,7 +37,7 @@ class BlockStorage:
         filenames: List[str] = []
         pattern = re.compile(r'^[0-9a-f]+\.dat$')
         
-        if not fileExists(self.store_dir) or not isDirectory(self.store_dir):
+        if not valid_directory(self.store_dir):
             os.makedirs(self.store_dir)
 
         filenames = [f for f in os.listdir(self.store_dir) if pattern.match(f)]
@@ -195,7 +194,7 @@ class BlockStorage:
 
         if isinstance(storefile, int):
             storefile = f'{hex(storefile)[2:]}.dat'
-        return fileExists(self.store_dir + storefile) and not isDirectory(self.store_dir + storefile)
+        return valid_file(self.store_dir + storefile)
 
 
     def get_storefile_json(self, storefile: str | int) -> Tuple[int, List]:
@@ -209,10 +208,16 @@ class BlockStorage:
         '''
         if isinstance(storefile, int):
             storefile = f'{hex(storefile)[2:]}.dat'
-
-        with open(self.store_dir + storefile, 'rb') as f:
-            results = bson.loads(f.read())
         
+        
+        results = load_bson_from_file(
+            self.store_dir + storefile, verbose = False
+        )
+
+        if results is None:
+            logger.critical(f'Error loading BSON from store: {storefile}')
+            return (-1, [])
+
         #print(results['blocks'])
 
         if 'blocks' not in results or not isinstance(results['blocks'], list):
@@ -224,7 +229,7 @@ class BlockStorage:
     def save_to_storefile(self, storefile: str | int, json_data: dict) -> bool:
         if isinstance(storefile, int):
             storefile = f'{hex(storefile)[2:]}.dat'
-
+        
         with open(self.store_dir + storefile, 'wb') as f:
             f.write(bson.dumps(json_data))
 

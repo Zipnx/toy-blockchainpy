@@ -3,7 +3,8 @@ import logging
 from typing import List
 
 from coretc import Chain, Block, ChainSettings
-from coretc.utils.generic import data_hexdigest, data_hexundigest
+from coretc.utils.generic import data_hexdigest, data_hexundigest, load_json_from_file
+from coretc.utils.valid_data import valid_port, valid_host
 
 from threading import Lock
 
@@ -16,10 +17,60 @@ class RPC:
     def __init__(self, settings: RPCSettings):
         logger.info('Initialized RPC')
         
+        self.VERSION = '0.1.0'
         self.settings = settings
         self.lock = Lock()
         self.chain: Chain = Chain(settings.get_chainsettings())
         self.peers: List[Peer] = []
+        
+        self.load_peers()
+
+    def load_peers(self) -> bool:
+        '''
+        Load available peers from the node's peers.json file
+        
+        Returns:
+            bool: Whether the peers where loaded successfully
+        '''
+        logger.debug('Loading peer information')
+
+        peer_json = load_json_from_file(self.settings.node_directory + '/peers.json',
+                                        verbose = True)
+
+        if peer_json is None:
+            logger.critical('Unable to load peers.')
+            return False
+
+        # Check if the JSON structure is valid
+
+        if not isinstance(peer_json, list):
+            logger.error('Peer info is not a list?')
+            return False
+
+        for peer_entry in peer_json:
+            if 'host' not in peer_entry or 'port' not in peer_entry:
+                logger.error('Invalid peer JSON format')
+                return False
+            
+            host = peer_entry['host']
+            port = peer_entry['port']
+
+            if not valid_host(host) and valid_port(port):
+                logger.error('Peer has invalid data')
+                return False
+
+            self.peers.append(
+                Peer(host = peer_entry['host'], port = peer_entry['port'])
+            )
+
+        return True
+
+    def get_info(self) -> dict:
+        return {
+            'version': self.VERSION,
+            'status': True, # TODO: Change this later to be dynamic
+            'peercount': len(self.peers)
+        }
 
     def get_chain_height(self) -> int:
         '''

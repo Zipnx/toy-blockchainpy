@@ -191,7 +191,6 @@ class UTXO:
         '''
         
         if not self.is_valid(): return False
-        
         if not len(self.txid) == 32: return False
         if not self.signature: return False
 

@@ -2,6 +2,8 @@
 from coretc import Block, TX, UTXO
 import unittest
 
+from coretc.utils.generic import dump_json
+from coretc.wallet import Wallet
 from tests.helpers import create_example_block, create_example_tx, create_example_utxo
 
 class TestJsonConversion(unittest.TestCase):
@@ -47,23 +49,11 @@ class TestJsonConversion(unittest.TestCase):
                              "UTXO and it's copy don't have the same hash")
 
     def test_tx_with_utxos(self) -> None:
-
-        tx: TX = create_example_tx()
         
-        a: UTXO = create_example_utxo()
-        a.amount = 0.2
+        test_wallet_a = Wallet.generate()
+        tx = test_wallet_a.create_reward_transaction(0.5)
 
-        b: UTXO = create_example_utxo()
-        b.amount = 0.3
-        b.index = 1
-
-        c: UTXO = create_example_utxo()
-        b.amount = 0.5
-
-        tx.inputs  += [a, b]
-        tx.outputs += [c]
-
-        tx.make()
+        self.assertIsNotNone(tx, 'Error creating TX')
 
         tx_json = tx.to_json()
 

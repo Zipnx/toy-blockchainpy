@@ -80,9 +80,19 @@ class TX:
 
         # TODO: Check for errors on these 2 fuckers
         for in_utxo in self.inputs:
+
+            if not in_utxo.is_valid_input():
+                logger.warn('Invalid UTXO Input being converted to JSON')
+                break
+
             in_json.append(in_utxo.to_json(is_input = True))
 
         for out_utxo in self.outputs:
+            
+            if not out_utxo.is_valid():
+                logger.warn('Invalid UTXO Output being converted to JSON')
+                break
+
             out_json.append(out_utxo.to_json(is_input = False))
     
         return {

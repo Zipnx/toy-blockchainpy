@@ -26,7 +26,7 @@ rpc = RPC(settings)
 
 @app.route('/')
 def homepage():
-    return jsonify({'msg':'ToyChain RPC Running'})
+    return jsonify(rpc.get_info())
 
 @app.route('/peers')
 def get_peers():
@@ -75,6 +75,8 @@ def get_mempool():
 def main():
     flask_log = logging.getLogger('werkzeug')
     flask_log.setLevel(logging.ERROR)
+    
+    logger.info(f'Node running at {settings.host}:{settings.port}')
 
     app.run(host = settings.host, port = settings.port, debug = False)
 
