@@ -4,7 +4,7 @@ from os.path import exists, isdir
 import os
 
 from coretc.wallet import Wallet
-from coretc import Chain, ChainSettings, Block, ForkBlock, TX, UTXO, mine_block
+from coretc import Chain, ChainSettings, Block, ForkBlock, TX, UTXO, difficulty, mine_block
 
 CHAIN_PATH = './pytests-chain-tmp/'
 
@@ -21,7 +21,16 @@ def create_empty_chain():
     return chain
 
 def create_example_block(prev: bytes = b'\x00'*32, mine: bool = True) -> Block:
-    blk = Block(prev, 1, 0x2000FFFF, b'', [])
+    #blk = Block(prev, 1, 0x2000FFFF, b'', [])
+
+    blk = Block(
+        previous_hash = prev,
+        timestamp = 696969,
+        difficulty_bits = 0x2000FFFF,
+        nonce = b'Some data',
+        transactions = [],
+        _VERSION = 1
+    )
 
     return blk if not mine else mine_block(blk)
 

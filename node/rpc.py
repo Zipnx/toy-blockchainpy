@@ -64,6 +64,28 @@ class RPC:
             )
 
         return True
+    
+    def add_block(self, block_json: dict) -> dict:
+        '''
+        Function to submit a new block. This block will also propagate to peers if
+        it's unique
+
+        Args:
+            block_json (dict): Dictionary of the block JSON, to be parsed
+
+        Returns:
+            dict: Response status of block addition
+        '''
+        
+        pass
+
+        # Validate the block's JSON format
+
+        # Add it to the RPC chain and get the result
+        
+        # Send the response to the sending peer.
+
+        # Propagate to other peers.
 
     def get_info(self) -> dict:
         return {
@@ -82,7 +104,7 @@ class RPC:
         with self.lock:
             return self.chain.get_height()
 
-    def get_peer_list(self) -> List[dict]:
+    def get_peers_json(self) -> List[dict]:
         '''
         Retrieve a list of peer information to share
 
@@ -97,7 +119,7 @@ class RPC:
                 output.append(peer.to_json())
 
             return output
-
+    
     def get_top_hash(self) -> str:
         '''
         Retrieve the current top hash in the chain of this node

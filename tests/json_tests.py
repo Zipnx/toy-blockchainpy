@@ -16,7 +16,7 @@ class TestJsonConversion(unittest.TestCase):
 
         blk_copy = Block.from_json(blk_json)
 
-        self.assertFalse(blk_copy is None, "Error deserializing JSON to Block object")
+        self.assertIsNotNone(blk_copy, "Error deserializing JSON to Block object")
         
         if blk_copy is not None:
             self.assertEqual(blk.hash_sha256(), blk_copy.hash_sha256(), 
@@ -30,7 +30,7 @@ class TestJsonConversion(unittest.TestCase):
 
         tx_copy: TX | None = TX.from_json(tx_json)
 
-        self.assertFalse(tx_copy is None, "Error deserializing JSON to TX object")
+        self.assertIsNotNone(tx_copy, "Error deserializing JSON to TX object")
 
         if tx_copy is not None:
             self.assertEqual(tx.hash_sha256(), tx_copy.hash_sha256(),

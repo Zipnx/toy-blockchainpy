@@ -30,7 +30,7 @@ def homepage():
 
 @app.route('/peers')
 def get_peers():
-    return jsonify(rpc.get_peer_list())
+    return jsonify(rpc.get_peers_json())
 
 @app.route('/height')
 def get_current_height():
