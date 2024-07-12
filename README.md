@@ -72,5 +72,6 @@ python3 node /path/to/node/directory
 - [x] Block difficulty adjustment
 - [ ] Better error handling, even more of it
 - [x] Tool to setup a node quickly
+- [ ] Bug: Fix the node sometimes rejecting valid blocks
 - [ ] Quick: Make sure a node cannot have itself as a peer
 - [ ] Quick: Make sure a node does not have duplicate peers
