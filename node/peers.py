@@ -7,6 +7,15 @@ from dataclasses import dataclass
 class Peer:
     host: str
     port: int = 1993
+    
+    ssl_enabled: bool = False # TODO: Fix this at some point 
+
+    def form_url(self, endpoint) -> str:
+        if len(endpoint) <= 0: endpoint = '/'
+
+        if not endpoint[0] == '/': endpoint = '/' + endpoint
+
+        return f'{"https" if self.ssl_enabled else "http"}://{self.host}:{self.port}{endpoint}'
 
     def to_json(self) -> dict:
         return {

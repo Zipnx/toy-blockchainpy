@@ -60,9 +60,14 @@ def get_blocks_bulk():
 def get_blockhash():
     return jsonify({'msg': 'Unimplemented'})
 
-@app.route('/submitblock')
+@app.route('/submitblock', methods = ['POST'])
 def submit_block():
-    return jsonify({'msg': 'Unimplemented'})
+    if request.method == 'GET':
+        return jsonify({'msg': 'This endpoint is POST only'})
+    
+    block_data = request.get_json()
+
+    return jsonify(rpc.add_block(block_data))
 
 @app.route('/submittx')
 def submit_transaction():

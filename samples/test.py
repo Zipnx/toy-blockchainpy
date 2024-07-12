@@ -11,14 +11,11 @@ from coretc import Chain, ChainSettings, Block, BlockStatus, mine_block
 from coretc.utils.generic import data_hexdigest
 
 def sample_block(bc: Chain, prev: bytes = b'') -> Block:
-
     if prev:
         blk = Block(prev, int(time.time()), bc.get_top_difficulty(), b'', [])
     else:
         blk = Block(bc.get_tophash(), int(time.time()), bc.get_top_difficulty(), b'', [])
-    
     mine_block(blk, True)
-
     return blk
 
 def main():

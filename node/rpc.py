@@ -3,7 +3,8 @@ import logging
 from typing import List
 
 from coretc import Chain, Block, ChainSettings
-from coretc.utils.generic import data_hexdigest, data_hexundigest, load_json_from_file
+from coretc.status import BlockStatus
+from coretc.utils.generic import data_hexdigest, data_hexundigest, dump_json, load_json_from_file
 from coretc.utils.valid_data import valid_port, valid_host
 
 from threading import Lock
@@ -77,15 +78,31 @@ class RPC:
             dict: Response status of block addition
         '''
         
-        pass
+        logger.debug('Received possible block to add')
+        dump_json(block_json)
 
         # Validate the block's JSON format
+        if not Block.valid_block_json(block_json):
+            return {'status': int(BlockStatus.INVALID_ERROR)}
 
-        # Add it to the RPC chain and get the result
-        
-        # Send the response to the sending peer.
+        # Try to add it to the RPC chain and get the result
+        block = Block.from_json(block_json)
+
+        if block is None:
+            return {'status': int(BlockStatus.INVALID_ERROR)}
+
+        result = self.chain.add_block(block) 
+
+        if result != BlockStatus.VALID:
+            logger.warn("Block sent by peer was rejected") # TODO: Keep track of the src here too
+            return {'status': int(result)}
+
+        logger.debug('Received valid block. Added to chain.')
 
         # Propagate to other peers.
+        logger.critical('NEW BLOCK PROPAGATION NOT IMPLEMENTED') 
+        
+        return {'status': int(result)}
 
     def get_info(self) -> dict:
         return {
