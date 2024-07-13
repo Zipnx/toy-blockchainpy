@@ -66,6 +66,27 @@ class RPC:
 
         return True
     
+    def get_block(self, block_height: int) -> dict:
+        '''
+        Get a block's json given the height
+        
+        Args:
+            block_height (int): Height of the target block
+
+        Returns:
+            dict: The block's JSON data in dict form
+        '''
+
+        blk = self.chain.get_block_by_height(block_height)
+
+        if blk is None:
+            logger.warn('An invalid block height was requested')
+            return {'error': 'Block not found'}
+
+        return blk.to_json()
+
+
+
     def add_block(self, block_json: dict) -> dict:
         '''
         Function to submit a new block. This block will also propagate to peers if
@@ -103,6 +124,25 @@ class RPC:
         logger.critical('NEW BLOCK PROPAGATION NOT IMPLEMENTED') 
         
         return {'status': int(result)}
+    
+    def add_tx_to_mempool(self, tx_json: dict) -> bool:
+        '''
+        Used to add a transaction to the node's mempool and propagate it to other nodes
+
+        Args:
+            tx_json (dict): Transaction JSON in a Dictionary
+        Returns:
+            bool: Whether the tx was added to the mempool
+        '''
+        pass
+
+        # Check if the TX is already in the mempool
+
+        # Try to add to the mempool
+
+        # Share with other peers if successful
+
+        # Return whether the tx was accepted to the caller
 
     def get_info(self) -> dict:
         return {
@@ -147,3 +187,7 @@ class RPC:
 
         with self.lock:
             return data_hexdigest(self.chain.get_tophash(), no_prefix = True)
+
+    def get_top_diff(self) -> int:
+        '''Get the top difficulty directly from the chain'''
+        return self.chain.get_top_difficulty()

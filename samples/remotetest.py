@@ -26,11 +26,19 @@ def main():
     rpc.use_peer(Peer('127.0.0.1', 2000))
     #rpc.use_peer(Peer('127.0.0.1', 2001))
     #rpc.use_peer(Peer('127.0.0.1', 2002))
+    
+    print(rpc.get_topdiff())
+
+    return
 
     chain = Chain(ChainSettings(debug_dont_save=True))
 
-    for _ in range(16):
-        block = sample_block(chain)
+    for i in range(16):
+        if i == 7:
+            block = sample_block(chain, prev = b'\x69'*32)
+
+        else:
+            block = sample_block(chain)
         chain.add_block(block)
         rpc.submit_block(block)
 

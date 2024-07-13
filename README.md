@@ -60,18 +60,15 @@ python3 node /path/to/node/directory
 ```
 
 ## TODO:
-- [x] Transactions
 - [ ] Major cleanup and documentation of code 
-- [x] Merging fork into chain
-- [x] Basic UTXO & TX Implementation
 - [ ] More of the RPC functionality
 - [ ] Basic wallet app (todo way later)
 - [ ] Unit tests UTXO and TX validation
-- [x] Store blocks in store automatically
 - [ ] Caching in block storage
-- [x] Block difficulty adjustment
 - [ ] Better error handling, even more of it
-- [x] Tool to setup a node quickly
 - [ ] Bug: Fix the node sometimes rejecting valid blocks
 - [ ] Quick: Make sure a node cannot have itself as a peer
 - [ ] Quick: Make sure a node does not have duplicate peers
+- [ ] Perhaps move the rpc stuff out of the node directory, since RPCClient will also be used by other stuff
+- [ ] Node management
+- [ ] Peer pinging, and statuses

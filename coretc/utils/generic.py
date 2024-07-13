@@ -1,5 +1,6 @@
 
 from binascii import hexlify, unhexlify
+import binascii
 import logging, json, bson
 
 from os.path import exists as fileExists
@@ -34,8 +35,13 @@ def data_hexundigest(hexstring: str) -> bytes:
     '''
 
     hexstring = hexstring[(2 if hexstring[:2] == '0x' else 0):]
+    
+    try:
+        result = unhexlify(hexstring)
+    except binascii.Error:
+        return b'' # This is not ideal
 
-    return unhexlify(hexstring)
+    return result
 
 def load_json_from_file(filename: str, verbose: bool = False) -> dict | None:
     '''

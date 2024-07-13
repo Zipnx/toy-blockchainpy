@@ -16,6 +16,9 @@ class Peer:
         if not endpoint[0] == '/': endpoint = '/' + endpoint
 
         return f'{"https" if self.ssl_enabled else "http"}://{self.host}:{self.port}{endpoint}'
+    
+    def hoststr(self) -> str:
+        return f'{self.host}:{self.port}'
 
     def to_json(self) -> dict:
         return {
