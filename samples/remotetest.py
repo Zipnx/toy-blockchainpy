@@ -28,12 +28,13 @@ def main():
     #rpc.use_peer(Peer('127.0.0.1', 2002))
     
     print(rpc.get_tophash())
+    print(rpc.get_topdiff())
 
     #return
 
     chain = Chain(ChainSettings(debug_dont_save=True))
 
-    for i in range(128):
+    for i in range(16):
         if i == 7:
             block = sample_block(chain, prev = b'\x69'*32)
 

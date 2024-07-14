@@ -6,6 +6,7 @@ from coretc.status import BlockStatus
 from coretc.utils.generic import data_hexundigest
 
 from .peers import Peer, PeerStatus
+from .rpcutils import make_rpc_request
 
 logger = logging.getLogger('chain-rpc-client')
 
@@ -33,8 +34,14 @@ class RPCClient:
             logger.critical('Cannot get the tophash when no peer is specified')
             return None
 
-        r = requests.get(peer.form_url('/tophash'))
-        response_json = r.json()
+        response_json = make_rpc_request(
+            peer.form_url('/tophash'),
+            json_data = None,
+            method = 'GET'
+        )
+
+        if response_json is None:
+            response_json = {'error': 'Request error when accessing peer'}
 
         if 'error' in response_json:
             logger.error(f'Error getting top hash from peer {peer.hoststr()}: {str(response_json["error"])}')
@@ -69,9 +76,15 @@ class RPCClient:
             logger.critical('Cannot get the top difficulty when no peer is specified')
             return None
 
-        r = requests.get(peer.form_url('/topdifficulty'))
-        response_json = r.json()
+        response_json = make_rpc_request(
+            peer.form_url('/topdifficulty'),
+            json_data = None,
+            method = 'GET'
+        )
 
+        if response_json is None:
+            response_json = {'error': 'Request error when accessing peer'}
+        
         if 'error' in response_json:
             logger.error(f'Error getting top difficulty from peer {peer.hoststr()}: {str(response_json["error"])}')
             return None
@@ -111,9 +124,15 @@ class RPCClient:
             logger.critical('Cannot get the tophash when no peer is specified')
             return BlockStatus.INVALID_ERROR
 
-        r = requests.post(peer.form_url('/submitblock'), json = block.to_json())
+        response_json = make_rpc_request(
+            peer.form_url('/submitblock'),
+            json_data = block.to_json(),
+            method = 'POST'
+        ) 
         
-        response_json = r.json()
+        if response_json is None:
+            logger.error(f'Unable to access peer {peer.hoststr()} to send block JSON')
+            return BlockStatus.INVALID_ERROR
 
         if 'status' not in response_json:
             logger.error('Invalid response from peer where block was submitted')
@@ -155,11 +174,16 @@ class RPCClient:
         
         peer.status = PeerStatus.OFFLINE
 
-        r = requests.post(peer.form_url('/ping'))
+        response_json = make_rpc_request(
+            peer.form_url('/ping'),
+            json_data = None,
+            method = 'POST'
+        )
+        
+        if response_json is None:
+            return False
 
-        response_json = r.json()
-
-        if 'msg' not in response_json and 'stamp' not in response:
+        if 'msg' not in response_json and 'stamp' not in response_json:
             logger.warn(f'Peer {peer.hoststr()} sent invalid ping response')
             return False
 

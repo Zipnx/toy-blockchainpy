@@ -70,4 +70,4 @@ python3 node /path/to/node/directory
 - [ ] Quick: Make sure a node cannot have itself as a peer
 - [ ] Node management
 - [x] Peer pinging, and statuses
-- [ ] Exception handling in the RPC client
+- [ ] Getting the peers of other Nodes and possibly using them

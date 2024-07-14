@@ -9,6 +9,8 @@ from coretc.utils.valid_data import valid_port, valid_host
 
 from threading import Lock
 
+from rpc.client import RPCClient
+
 from .peers import Peer
 from .settings import RPCSettings
 
@@ -22,9 +24,14 @@ class RPC:
         self.settings = settings
         self.lock = Lock()
         self.chain: Chain = Chain(settings.get_chainsettings())
-        self.peers: List[Peer] = []
         
+        self.peers: List[Peer] = []
+        self.peers_in_use: List[Peer] = [] 
+        
+        self.rpc_client = RPCClient()
+
         self.load_peers()
+        self.select_peers()
 
     def load_peers(self) -> bool:
         '''
@@ -77,6 +84,31 @@ class RPC:
 
         return True
     
+    def select_peers(self) -> int:
+        '''
+        Pings & Selects peers to use from the total peer list.
+
+        Returns:
+            int: Total peers set to be used
+        '''
+        
+        self.peers_in_use.clear()
+
+        for peer in self.peers:
+            if self.rpc_client.ping(peer):
+                self.peers_in_use.append(peer)
+
+            if len(self.peers_in_use) >= self.settings.max_connections: break
+        
+        peer_count = len(self.peers_in_use)
+
+        if peer_count == 0:
+            logger.warn('No online peers found!')
+        else:
+            logger.debug(f'Interacting with {peer_count} other peers')
+
+        return len(self.peers_in_use)
+
     def get_block(self, block_height: int) -> dict:
         '''
         Get a block's json given the height

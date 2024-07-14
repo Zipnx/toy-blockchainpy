@@ -9,6 +9,9 @@ import logging
 from flask import Flask, Response, json, jsonify, request
 
 logger = logging.getLogger('chain-rpc')
+urllib_log = logging.getLogger('urllib3.connectionpool')
+urllib_log.setLevel(logging.CRITICAL)
+
 
 parser = argparse.ArgumentParser(description = 'Run a toychain node')
 parser.add_argument('directory', type = str, help = 'Directory of the node, containing the config and blockchain data')
@@ -145,7 +148,7 @@ def get_mempool():
     
     return error_response('Unimplemented')
 
-@app.route('/ping')
+@app.route('/ping', methods = ['POST'])
 def pong():
     return jsonify({
         'msg': 'pong',
@@ -158,6 +161,8 @@ def main():
 
     flask_log = logging.getLogger('werkzeug')
     flask_log.setLevel(logging.ERROR)
+
+    
     
     logger.info(f'Node running at {settings.host}:{settings.port}')
 
