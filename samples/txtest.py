@@ -80,6 +80,8 @@ def main():
     print(a.balance())
     print(b.balance())
     
+    if chain.forks is None: return
+
     chain.forks._display()
 
     test = chain.forks.get_tallest_leaf()

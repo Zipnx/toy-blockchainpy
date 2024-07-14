@@ -68,6 +68,5 @@ python3 node /path/to/node/directory
 - [ ] Better error handling, even more of it
 - [ ] Bug: Fix the node sometimes rejecting valid blocks
 - [ ] Quick: Make sure a node cannot have itself as a peer
-- [ ] Perhaps move the rpc stuff out of the node directory, since RPCClient will also be used by other stuff
 - [ ] Node management
 - [ ] Peer pinging, and statuses

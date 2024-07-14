@@ -5,7 +5,7 @@ from coretc.blocks import Block
 from coretc.status import BlockStatus
 from coretc.utils.generic import data_hexundigest
 
-from node.peers import Peer
+from .peers import Peer
 
 logger = logging.getLogger('chain-rpc-client')
 

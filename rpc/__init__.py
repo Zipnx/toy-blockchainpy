@@ -1,6 +1,6 @@
 
 import logging
-from typing import List
+from typing import List, Self
 
 from coretc import Chain, Block, ChainSettings
 from coretc.status import BlockStatus
@@ -9,8 +9,8 @@ from coretc.utils.valid_data import valid_port, valid_host
 
 from threading import Lock
 
-from node.peers import Peer
-from node.settings import RPCSettings
+from .peers import Peer
+from .settings import RPCSettings
 
 logger = logging.getLogger('chain-rpc')
 
@@ -48,6 +48,8 @@ class RPC:
             logger.error('Peer info is not a list?')
             return False
 
+        
+
         for peer_entry in peer_json:
             if 'host' not in peer_entry or 'port' not in peer_entry:
                 logger.error('Invalid peer JSON format')
@@ -60,9 +62,18 @@ class RPC:
                 logger.error('Peer has invalid data')
                 return False
 
-            self.peers.append(
-                Peer(host = peer_entry['host'], port = peer_entry['port'])
-            )
+            peerobj = Peer(host = peer_entry['host'], port = peer_entry['port'])
+            
+            # Check if it's a duplicate
+            if peerobj in self.peers:
+                logger.warn('Duplicate peer found in peers.json file!')
+                continue
+
+            # TODO: Check that the peer is not the current node,
+            #       Need to check if it's an internal IP too
+
+
+            self.peers.append(peerobj)
 
         return True
     
@@ -98,32 +109,32 @@ class RPC:
         Returns:
             dict: Response status of block addition
         '''
+        with self.lock: 
+            logger.debug('Received possible block to add')
+            dump_json(block_json)
+
+            # Validate the block's JSON format
+            if not Block.valid_block_json(block_json):
+                return {'status': int(BlockStatus.INVALID_ERROR)}
+
+            # Try to add it to the RPC chain and get the result
+            block: Block | None = Block.from_json(block_json)
+
+            if block is None:
+                return {'status': int(BlockStatus.INVALID_ERROR)}
+
+            result = self.chain.add_block(block) 
+
+            if result != BlockStatus.VALID:
+                logger.warn("Block sent by peer was rejected") # TODO: Keep track of the src here too
+                return {'status': int(result)}
+
+            logger.debug('Received valid block. Added to chain.')
+
+            # Propagate to other peers.
+            logger.critical('NEW BLOCK PROPAGATION NOT IMPLEMENTED') 
         
-        logger.debug('Received possible block to add')
-        dump_json(block_json)
-
-        # Validate the block's JSON format
-        if not Block.valid_block_json(block_json):
-            return {'status': int(BlockStatus.INVALID_ERROR)}
-
-        # Try to add it to the RPC chain and get the result
-        block = Block.from_json(block_json)
-
-        if block is None:
-            return {'status': int(BlockStatus.INVALID_ERROR)}
-
-        result = self.chain.add_block(block) 
-
-        if result != BlockStatus.VALID:
-            logger.warn("Block sent by peer was rejected") # TODO: Keep track of the src here too
             return {'status': int(result)}
-
-        logger.debug('Received valid block. Added to chain.')
-
-        # Propagate to other peers.
-        logger.critical('NEW BLOCK PROPAGATION NOT IMPLEMENTED') 
-        
-        return {'status': int(result)}
     
     def add_tx_to_mempool(self, tx_json: dict) -> bool:
         '''
@@ -134,7 +145,7 @@ class RPC:
         Returns:
             bool: Whether the tx was added to the mempool
         '''
-        pass
+        return False
 
         # Check if the TX is already in the mempool
 
@@ -190,4 +201,5 @@ class RPC:
 
     def get_top_diff(self) -> int:
         '''Get the top difficulty directly from the chain'''
-        return self.chain.get_top_difficulty()
+        with self.lock:
+            return self.chain.get_top_difficulty()

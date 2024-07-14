@@ -52,7 +52,7 @@ def main():
 
     print()
 
-    x.get_tallest_subtree()._display()
+    #x.get_tallest_subtree()._display()
 
 
 if __name__ == '__main__':

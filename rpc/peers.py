@@ -41,3 +41,6 @@ class Peer:
             host = json_data['host'],
             port = int(json_data['port'])
         )
+
+    def __eq__(self, other):
+        return (self.host, self.port) == (other.host, other.port)

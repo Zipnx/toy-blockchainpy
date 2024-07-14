@@ -2,8 +2,8 @@
 import os,sys,argparse
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from node.rpc import RPC
-from node.settings import RPCSettings, load_config
+from rpc import RPC
+from rpc.settings import RPCSettings, load_config
 
 import logging
 from flask import Flask, Response, json, jsonify, request
@@ -18,6 +18,7 @@ args = parser.parse_args()
 app = Flask(__name__)
 
 settings: RPCSettings | None = load_config(args.directory)
+
 if settings is None:
     logger.critical('Unable to load settings!')
     quit()
@@ -145,6 +146,9 @@ def get_mempool():
     return error_response('Unimplemented')
 
 def main():
+
+    if settings is None: return
+
     flask_log = logging.getLogger('werkzeug')
     flask_log.setLevel(logging.ERROR)
     
