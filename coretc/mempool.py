@@ -1,5 +1,5 @@
 
-from typing import List, Mapping
+from typing import List, MutableMapping
 import logging, json
 
 from os.path import exists as fileExists
@@ -15,7 +15,7 @@ class MemPool:
         self.mempool_file = mempool_file
 
         # TX -> Timestamp
-        self.mempool: Mapping[TX, int] = {}
+        self.mempool: MutableMapping[TX, int] = {}
 
     def load_mempool(self) -> bool:
         '''
@@ -36,7 +36,7 @@ class MemPool:
             json_data = json.load(f)
             
         for timestamp, txjson in json_data.items():
-            tx_obj: TX = TX.from_json(txjson)
+            tx_obj: TX | None = TX.from_json(txjson)
 
             if tx_obj is None:
                 logger.critical('Malformed TX in MemPool file!')

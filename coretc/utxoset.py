@@ -66,7 +66,7 @@ class UTXOSet:
         Get the whole set in JSON format
         '''
         
-        output: dict[str, int | list] = {}
+        output: dict = {}
         output['height'] = self.currently_scanned_height
         output['outputs'] = list()
 

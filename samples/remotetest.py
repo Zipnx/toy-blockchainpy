@@ -6,8 +6,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from coretc.settings import ChainSettings
 
 from coretc import Chain, Block, mine_block
-from node.rpcclient import RPCClient
-from node.peers import Peer
+from rpc.client import RPCClient
+from rpc.peers import Peer
 
 urllib_log = logging.getLogger('urllib3.connectionpool')
 urllib_log.disabled = True
@@ -27,7 +27,7 @@ def main():
     #rpc.use_peer(Peer('127.0.0.1', 2001))
     #rpc.use_peer(Peer('127.0.0.1', 2002))
     
-    print(rpc.get_topdiff())
+    print(rpc.get_tophash())
 
     return
 

@@ -1,5 +1,5 @@
 
-from typing import Type
+from typing import Type, Optional
 
 from binascii import hexlify, unhexlify
 from dataclasses import dataclass
@@ -158,7 +158,7 @@ class Block:
         return True
 
     @staticmethod
-    def from_json(json_data: dict) -> object | None:
+    def from_json(json_data: dict) -> Optional['Block']:
         '''
         Initialize a block object from JSON
 

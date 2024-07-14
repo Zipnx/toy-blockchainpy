@@ -165,7 +165,7 @@ class BlockStorage:
             #print(f'Writting to store file {store_file}')
 
             # Handle possible other data in preexisting store file
-            prev_data = []
+            prev_data: List[dict] = []
         
             if self.store_file_exists(store_file):
                 _, prev_data = self.get_storefile_json(store_file)

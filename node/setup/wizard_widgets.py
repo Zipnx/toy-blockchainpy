@@ -12,8 +12,10 @@ def get_int(prompt: str, default: int | None = None) -> int:
     Returns:
         int: Recorded input integer
     '''
+    if default is None:
+        return IntPrompt.ask(prompt)
 
-    return int(IntPrompt.ask(prompt, default=default))
+    return IntPrompt.ask(prompt, default=default)
 
 def get_string(prompt: str, default: str | None = None) -> str:
     '''

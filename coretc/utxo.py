@@ -1,5 +1,5 @@
 
-from typing import List
+from typing import List, Optional
 
 import struct, logging
 from binascii import hexlify, unhexlify
@@ -92,7 +92,7 @@ class UTXO:
         return json_data
     
     @staticmethod
-    def from_json(json_data: dict):
+    def from_json(json_data: dict) -> Optional['UTXO']:
         '''
         Parse JSON representation of a UTXO into an object
 

@@ -2,7 +2,7 @@
 from binascii import hexlify, unhexlify
 from copy import deepcopy
 from hashlib import sha256
-from typing import List
+from typing import List, Optional
 from dataclasses import dataclass, field
 import os, logging
 from coretc.utils.errors import deprecated
@@ -103,7 +103,7 @@ class TX:
         }
 
     @staticmethod
-    def from_json(json_data: dict):
+    def from_json(json_data: dict) -> Optional['TX']:
         '''
         Get a TX object from its JSON form
 
@@ -151,17 +151,21 @@ class TX:
 
             res_out.append(obj)
 
-        obj = TX(
+        result: TX | None = TX(
             inputs      = res_ins,
             outputs     = res_out,
             _nonce      = data_hexundigest(json_data['nonce'])
         )
         
-        if not json_data['txid'] == data_hexdigest(obj.hash_sha256()):
+        if result is None:
+            logger.error('Error creating TX object from JSON data')
+            return None
+
+        if not json_data['txid'] == data_hexdigest(result.hash_sha256()):
             logger.error('Deserialized TX does not have the same transaction ID')
             return None
 
-        return obj
+        return result
     
     @deprecated
     def set_utxo_indexes(self) -> None:

@@ -1,5 +1,5 @@
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from binascii import hexlify
 from copy import deepcopy
 
@@ -60,7 +60,7 @@ class ForkBlock:
         # Increment the height of all parent nodes if this is now the heighest leaf node of the subtree
         if len(self.next) == 0:
             
-            cur: ForkBlock = self
+            cur: ForkBlock | None = self
             
             while cur is not None:
                 cur.height += 1
@@ -206,12 +206,12 @@ class ForkBlock:
 
         return True 
     
-    def get_tallest_subtree(self):
+    def get_tallest_subtree(self) -> Optional['ForkBlock']:
         '''
         Return the tallest subtree
 
         Return:
-            ForkBlock: Subtree root node
+            ForkBlock | None: Subtree root node or None is the ForkBlock has no children
         '''
         
         # Not actually as inefficient since i changed the height to be stored on the forkblocks
@@ -258,7 +258,7 @@ class ForkBlock:
         result_used:  List[UTXO] = list()
         result_added: List[UTXO] = list()
 
-        cur: ForkBlock = self
+        cur: ForkBlock | None = self
         
         #route: List[UTXO] = self.get_block_route()
 
