@@ -69,4 +69,5 @@ python3 node /path/to/node/directory
 - [ ] Bug: Fix the node sometimes rejecting valid blocks
 - [ ] Quick: Make sure a node cannot have itself as a peer
 - [ ] Node management
-- [ ] Peer pinging, and statuses
+- [x] Peer pinging, and statuses
+- [ ] Exception handling in the RPC client

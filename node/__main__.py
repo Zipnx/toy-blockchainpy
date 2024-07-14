@@ -1,5 +1,5 @@
 
-import os,sys,argparse
+import os,sys,argparse, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from rpc import RPC
@@ -144,6 +144,13 @@ def get_mempool():
     '''
     
     return error_response('Unimplemented')
+
+@app.route('/ping')
+def pong():
+    return jsonify({
+        'msg': 'pong',
+        'stamp': int(time.time())
+    })
 
 def main():
 

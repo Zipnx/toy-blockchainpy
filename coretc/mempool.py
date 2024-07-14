@@ -6,6 +6,7 @@ from os.path import exists as fileExists
 from os.path import isdir as isDirectory
 
 from coretc import TX
+from coretc.utils.generic import load_json_from_file
 
 logger = logging.getLogger('tc-core')
 
@@ -27,14 +28,13 @@ class MemPool:
         logger.info(f'Loading MemPool from {self.mempool_file}')
 
         self.mempool.clear()
+        
+        json_data = load_json_from_file(self.mempool_file, verbose = True)
 
-        if not fileExists(self.mempool_file) or isDirectory(self.mempool_file):
-            logger.error('MemPool file not found')
+        if json_data is None:
+            logger.error('Error loading mempool data!')
             return False
 
-        with open(self.mempool_file, 'rb') as f:
-            json_data = json.load(f)
-            
         for timestamp, txjson in json_data.items():
             tx_obj: TX | None = TX.from_json(txjson)
 

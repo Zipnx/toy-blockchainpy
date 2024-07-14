@@ -5,7 +5,7 @@ from coretc.blocks import Block
 from coretc.status import BlockStatus
 from coretc.utils.generic import data_hexundigest
 
-from .peers import Peer
+from .peers import Peer, PeerStatus
 
 logger = logging.getLogger('chain-rpc-client')
 
@@ -135,3 +135,40 @@ class RPCClient:
             return BlockStatus.INVALID_ERROR
 
         return blockstatus
+
+    def ping(self, peer: Peer | None) -> bool:
+        '''
+        Peer the currently selected Peer, or one specified
+
+        Args:
+            peer (Peer | None): Optionally a specific peer to ping
+        Returns:
+            bool: Whether the ping was successful
+        '''
+
+        if peer is None:
+            peer = self.selected_peer
+        
+        if peer is None:
+            logger.critical('Cannot get the tophash when no peer is specified')
+            return False
+        
+        peer.status = PeerStatus.OFFLINE
+
+        r = requests.post(peer.form_url('/ping'))
+
+        response_json = r.json()
+
+        if 'msg' not in response_json and 'stamp' not in response:
+            logger.warn(f'Peer {peer.hoststr()} sent invalid ping response')
+            return False
+
+        # TODO: Also do something with the returned timestamp idk
+
+        if str(response_json['msg']) != 'pong': return False
+
+        peer.status = PeerStatus.ONLINE
+
+        return True
+
+

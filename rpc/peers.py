@@ -1,5 +1,12 @@
 
 from dataclasses import dataclass
+from enum import IntEnum
+
+class PeerStatus(IntEnum):
+    OFFLINE = 0
+    ONLINE  = 1
+    LIMITED = 2
+    BANNED  = 3
 
 # TODO: Add a penalty system at some point
 
@@ -8,6 +15,8 @@ class Peer:
     host: str
     port: int = 1993
     
+    status: PeerStatus = PeerStatus.OFFLINE
+
     ssl_enabled: bool = False # TODO: Fix this at some point 
 
     def form_url(self, endpoint) -> str:

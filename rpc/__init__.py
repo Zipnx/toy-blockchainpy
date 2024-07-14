@@ -1,5 +1,5 @@
 
-import logging
+import logging, time
 from typing import List, Self
 
 from coretc import Chain, Block, ChainSettings
@@ -159,7 +159,8 @@ class RPC:
         return {
             'version': self.VERSION,
             'status': True, # TODO: Change this later to be dynamic
-            'peercount': len(self.peers)
+            'peercount': len(self.peers),
+            'timestamp': int(time.time())
         }
 
     def get_chain_height(self) -> int:
