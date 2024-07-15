@@ -1,6 +1,8 @@
 
 
 import logging, requests
+from typing import List
+
 from coretc.blocks import Block
 from coretc.status import BlockStatus
 from coretc.utils.generic import data_hexundigest
@@ -154,6 +156,62 @@ class RPCClient:
             return BlockStatus.INVALID_ERROR
 
         return blockstatus
+    
+    def get_foreign_peers(self, peer: Peer | None = None) -> dict:
+        '''
+        Get the peer list of a foreign node
+
+        Args:
+            peer (Peer | None): Optionally a specific peer to ping
+        Returns:
+            dict: Peer information separated by all and currently active peers
+        '''
+        result: dict = {
+            'banned': [],
+            'limited': [],
+            'offline': [],
+            'online': [],
+            'used': []
+        }
+        
+        if peer is None:
+            peer = self.selected_peer
+        
+        if peer is None:
+            logger.critical('Cannot get peer information when no peer is specified')
+            return result
+        
+        response_json = make_rpc_request(
+            peer.form_url('/peers'), 
+            json_data = None,
+            method = 'GET'
+        )
+
+        if response_json is None:
+            logger.error(f'Unable to get peer list of {peer.hoststr()}')
+            return result
+
+        fields = ['banned', 'limited', 'offline', 'online', 'used']
+
+        for f in fields:
+            if f not in response_json:
+                logger.error(f'Peer {peer.hoststr()} sent invalid peer list response')
+                continue
+        
+            if not isinstance(response_json[f], list):
+                logger.error(f'Peer {peer.hoststr()} sent invalid peer list response (not list)')
+                continue
+
+            for peer_json in response_json[f]:
+                peer_obj = Peer.from_json(peer_json)
+
+                if peer_obj is None:
+                    logger.error(f'Peer list response from {peer.hoststr()} contained invalid peer JSON')
+                    continue
+
+                result[f].append(peer_obj)
+
+        return result
 
     def ping(self, peer: Peer | None) -> bool:
         '''

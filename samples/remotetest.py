@@ -30,7 +30,9 @@ def main():
     print(rpc.get_tophash())
     print(rpc.get_topdiff())
 
-    #return
+    print(rpc.get_foreign_peers())
+
+    return
 
     chain = Chain(ChainSettings(debug_dont_save=True))
 

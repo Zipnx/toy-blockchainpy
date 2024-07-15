@@ -520,6 +520,8 @@ class Chain:
                 # This happens when loading the pre stored blockchain from the sote file
                 # Just needs to adjust the difficulty
                 
+                # TODO: When the chain first gets initialized, if get_difficulty is queried multiple times, it "adjusts" difficulty over and over with every query 
+
                 logger.info('Adjusting global difficulty after load')
                 newDiff = self.get_chunk_difficulty(self.get_established_height() // self.settings.difficulty_adjustment)
                 if newDiff < 0:

@@ -11,7 +11,7 @@ from threading import Lock
 
 from rpc.client import RPCClient
 
-from .peers import Peer
+from .peers import Peer, PeerStatus
 from .settings import RPCSettings
 
 logger = logging.getLogger('chain-rpc')
@@ -93,12 +93,14 @@ class RPC:
         '''
         
         self.peers_in_use.clear()
-
+        
+        # This might be inefficient if a lot of peers are in the known list but it's a problem
+        # ill fix some other time. I find it better to know the status of all known peers
         for peer in self.peers:
             if self.rpc_client.ping(peer):
-                self.peers_in_use.append(peer)
-
-            if len(self.peers_in_use) >= self.settings.max_connections: break
+                
+                if len(self.peers_in_use) < self.settings.max_connections:
+                    self.peers_in_use.append(peer)
         
         peer_count = len(self.peers_in_use)
 
@@ -205,21 +207,41 @@ class RPC:
         with self.lock:
             return self.chain.get_height()
 
-    def get_peers_json(self) -> List[dict]:
+    def get_peers_json(self) -> dict:
         '''
         Retrieve a list of peer information to share
 
         Returns:
-            dict: Peer info
+            dict: Peer info, separated by all and active peers
         '''
 
         with self.lock:
-            output = []
-        
+            result = {
+                'offline': [],
+                'online': [],
+                'limited': [],
+                'banned': [],
+                'used': []
+            }
+            
             for peer in self.peers:
-                output.append(peer.to_json())
 
-            return output
+                peer_json = peer.to_json()
+
+                match peer.status:
+                    case PeerStatus.OFFLINE:
+                        result['offline'].append(peer_json)
+                    case PeerStatus.ONLINE:
+                        result['online'].append(peer_json)
+                    case PeerStatus.LIMITED:
+                        result['limited'].append(peer_json)
+                    case PeerStatus.BANNED:
+                        result['banned'].append(peer_json)
+
+                if peer in self.peers_in_use:
+                    result['used'].append(peer_json)
+
+            return result
     
     def get_top_hash(self) -> str:
         '''

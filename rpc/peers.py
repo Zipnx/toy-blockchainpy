@@ -72,7 +72,8 @@ class Peer:
             if param not in json_data:
                 return None
         
-        if not json_data['port'].isdigit(): return None
+        if not isinstance(json_data['port'], int):
+            if not str(json_data['port']).isdigit(): return None
 
         return Peer(
             host = json_data['host'],
