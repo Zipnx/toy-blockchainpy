@@ -2,6 +2,7 @@
 import os,sys,argparse, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from coretc.utils.generic import data_hexdigest
 from rpc import RPC
 from rpc.settings import RPCSettings, load_config
 
@@ -79,7 +80,7 @@ def top_difficulty():
     '''
     return jsonify({'difficulty': rpc.get_top_diff()})
 
-@app.route('/getblock')
+@app.route('/getblock', methods = ['POST'])
 def get_block():
     '''
     Get an individual block, given it's difficulty
@@ -100,8 +101,8 @@ def get_block():
         
         target_height = int(target_height)
 
-    if target_height < 0:
-        return error_response('Target height must be >= 0')
+    if target_height <= 0:
+        return error_response('Target height must be >= 1')
 
     return jsonify(rpc.get_block(target_height))
 
@@ -112,12 +113,33 @@ def get_blocks_bulk():
     '''
     return error_response('Unimplemented')
 
-@app.route('/getblockhash')
+@app.route('/getblockhash', methods = ['POST'])
 def get_blockhash():
     '''
     Retrieves the hash of a block at a certain height
     '''
-    return error_response('Unimplemented')
+    req_data = request.get_json()
+
+    target_height = req_data['height']
+
+    if not isinstance(target_height, int):
+        if not str(target_height).isdigit(): return error_response('Height must be in int form')
+        
+        target_height = int(target_height)
+
+    if target_height <= 0:
+        return jsonify({
+            'hash': data_hexdigest(b'\x00'*32, no_prefix = False)
+        })
+    
+    block_json = rpc.get_block(target_height)
+    
+    if 'error' in block_json: 
+        return jsonify(block_json)
+
+    return jsonify({
+        'hash': block_json['hash']
+    })
 
 @app.route('/submitblock', methods = ['POST'])
 def submit_block():

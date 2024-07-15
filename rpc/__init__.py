@@ -120,7 +120,7 @@ class RPC:
             dict: The block's JSON data in dict form
         '''
 
-        blk = self.chain.get_block_by_height(block_height)
+        blk = self.chain.get_block_by_height(block_height, get_top_fork = True)
 
         if blk is None:
             logger.warn('An invalid block height was requested')
