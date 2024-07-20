@@ -63,7 +63,7 @@ python3 node /path/to/node/directory
 - [ ] Major cleanup and documentation of code 
 - [ ] More of the RPC functionality
 - [ ] Basic wallet app (todo way later)
-- [ ] Unit tests UTXO and TX validation
+- [ ] Do lots of tests on TX & UTXO validation 
 - [ ] Caching in block storage
 - [ ] Better error handling, even more of it
 - [ ] Bug: Fix the node sometimes rejecting valid blocks

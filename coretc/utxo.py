@@ -131,7 +131,7 @@ class UTXO:
         # This is not ideal, since a SHA256 hash will be calculated again
         return data_sign( private_key, self.get_hash_with_outputs(outputs) ) or b'' 
 
-    def sign(self, private_key: ECC.EccKey, outputs: List):
+    def sign(self, private_key: ECC.EccKey, outputs: List) -> 'UTXO':
         '''
         Calculate and set the UTXO's signature then return the object itself
 
@@ -223,7 +223,8 @@ class UTXO:
     # will be needed for dicts
     def __hash__(self):
         return hash(self.hash_sha256())
-
+    
+    # WARNING: This works only on INPUTS
     def __eq__(self, other):
         return self.get_id() == other.get_id() and isinstance(other, type(self))
 

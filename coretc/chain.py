@@ -3,6 +3,7 @@ from typing import List, Tuple
 
 from coretc.difficulty import adjustDifficulty
 from coretc.forktree import ForkBlock
+from coretc.transaction import TX
 from coretc.blocks import Block
 from coretc.utils.errors import deprecated, incomplete
 from coretc.utils.generic import data_hexdigest, dump_json
@@ -56,9 +57,86 @@ class Chain:
 
         self.memory_pool: MemPool = MemPool(self.opts.mempool_path)
         self.memory_pool.load_mempool()
+    
+    def validate_transaction(self, transaction: TX, fork: ForkBlock | None = None) -> BlockStatus:
+        '''
+        Validate a transaction given the transaction and the fork (else use the top fork)
+
+        Args:
+            transaction (TX): Transaction to make sure is valid
+            fork (ForkBlock | None): Fork to use. Default is None and picks the top fork
+
+        Returns:
+            BlockStatus: Check status result
+        '''
+        
+        if fork is None:
+            fork, _ = self.get_longest_fork()
+        
+        tx_inputs_used: List[UTXO] = []
+        fork_used:  List[UTXO] = []
+        fork_added: List[UTXO] = []
+        
+        # In the case there are NO forks
+        if fork is not None:
+            fork_used, fork_added = fork.get_fork_utxoset()
+
+        # Check the TX structure, the inputs signatures are also checked here
+        if not transaction.check_inputs():
+            return BlockStatus.INVALID_TX_INPUTS
+
+        if not transaction.check_outputs():
+            return BlockStatus.INVALID_TX_OUTPUTS
+
+        # Make sure the transfer amounts make sense
+        # Avoids would be rewards txs, those are checked block-wise
+        if (transaction.outgoing_funds() > transaction.ingoing_funds()) and len(transaction.inputs) > 0:
+            return BlockStatus.INVALID_TX_AMOUNTS
+
+        # Check the inputs (unspent)
+        for utxo in transaction.inputs:
+
+            # ======== DOUBLE SPEND CHECK ==========
+            # If the used UTXO has been used in this block already
+            if utxo in tx_inputs_used or utxo in fork_used:
+                logger.warn(f'Input UTXO of {data_hexdigest(transaction.get_txid())} already spent in current fork or block')
+                return BlockStatus.INVALID_TX_UTXO_IS_SPENT 
+            
+            tx_inputs_used.append(utxo)
+
+            # ======== UTXO Exists Check ===========
+            # Check if the UTXO not in the UTXO set
+            utxo_from_set: UTXO | None = self.utxo_set.utxo_get(utxo.txid, utxo.index)
+
+            if utxo_from_set is not None:
+                
+                # First check if they have the same data
+                if not utxo.compare_as_input(utxo_from_set):
+                    logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} present in utxoset but modified')
+                    return BlockStatus.INVALID_TX_MOD_UTXO
+
+                continue
+            
+            # In this case we haven't found the utxo in the UTXOSet, but it might have been 
+            # added in the fork, so we check the fork_added
+            if utxo not in fork_added:
+                logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} does not exist.')
+                return BlockStatus.INVALID_TX_UTXO_IS_SPENT
+
+        return BlockStatus.TX_VALID
 
     def validate_transactions(self, block: Block, fork: ForkBlock | None) -> BlockStatus:
-         
+        '''
+        Validate the transactions in a block. Block reward is checked here
+
+        Args:
+            block (Block): Block which's TXs will be validated
+            fork (ForkBlock): Required. The fork at which the block belongs to
+        
+        Returns:
+            BlockStatus: The resulting block status
+        '''
+
         reward_found = False
         
         if fork is not None:
@@ -73,7 +151,8 @@ class Chain:
         for transaction in block.transactions:
             
             #print(json.dumps(transaction.to_json(), indent = 4))
-
+            
+            # TODO: Do the reward value check at the end so as to also check for the fee
             if len(transaction.inputs) == 0:
                 if reward_found: return BlockStatus.INVALID_TX_MULTIPLE_REWARDS
                 reward_found = True
@@ -81,7 +160,8 @@ class Chain:
                 # Check reward amount
                 if transaction.outgoing_funds() > self.get_top_blockreward():
                     return BlockStatus.INVALID_TX_WRONG_REWARD_AMOUNT
-
+            '''
+            TODO: Delete this code block when you feel like it
             # Check UTXOs and TX Forms
             if not transaction.check_inputs():
                 return BlockStatus.INVALID_TX_INPUTS
@@ -135,8 +215,12 @@ class Chain:
                 print(fork_added)
 
                 return BlockStatus.INVALID_TX_UTXO_IS_SPENT
+            '''
 
-            # Note: If a TX uses a UTXO created in the same block this will reject it
+            res = self.validate_transaction(transaction, fork = fork)
+
+            if not res == BlockStatus.TX_VALID:
+                return res
             
             
 
@@ -145,7 +229,10 @@ class Chain:
     def is_block_valid(self, block: Block, fork: ForkBlock | None) -> BlockStatus:
         '''
         Given a block, check if it's valid. Also verifies in a side chain
-
+        
+        Args:
+            block (Block): Block to check
+            fork (ForkBlock | None): Fork to which the Block belongs to (or None)
         Return:
             bool: Block validity
         '''

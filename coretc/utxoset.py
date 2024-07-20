@@ -5,7 +5,7 @@ from os.path import exists as fileExists
 from os.path import isdir as isDirectory
 import bson, json
 
-from coretc.utils.generic import load_json_from_file
+from coretc.utils.generic import load_bson_from_file, load_json_from_file
 from coretc.utxo import UTXO
 import logging
 
@@ -31,7 +31,7 @@ class UTXOSet:
         
         self.utxos.clear()
         
-        data = load_json_from_file(self.outfile, verbose = True)
+        data = load_bson_from_file(self.outfile, verbose = True)
 
         if data is None:
             logger.error('Error loading UTXOSet data from file!')
