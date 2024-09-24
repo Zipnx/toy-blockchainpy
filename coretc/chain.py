@@ -703,6 +703,27 @@ class Chain:
 
         return current.block.hash_sha256()
     
+    def check_tophash_exists(self, block_hash: bytes) -> bool:
+        '''
+        Checks if the given hash is the chain's top or exists in the fork tree
+        
+        Args:
+            block_hash (bytes): Block hash to check in byte form
+        
+        Returns:
+            bool: Whether the hash exists
+
+        '''
+        
+        if self.forks is None:
+            top_estab: Block | None = self.get_block_by_height(self.get_established_height())
+
+            if top_estab is None: return False
+
+            return top_estab.hash_sha256() == block_hash
+
+        return self.forks.block_hash_exists(block_hash)
+
     @incomplete
     def verify_chain(self) -> bool:
         '''

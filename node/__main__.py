@@ -2,7 +2,7 @@
 import os,sys,argparse, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from coretc.utils.generic import data_hexdigest, is_valid_digit
+from coretc.utils.generic import data_hexdigest, data_hexundigest, is_valid_digit
 from rpc import RPC
 from rpc.settings import RPCSettings, load_config
 
@@ -196,6 +196,22 @@ def get_mempool():
     '''
     
     return error_response('Unimplemented')
+
+@app.route('/tophashexists', methods = ['POST'])
+def check_tophash_exists():
+    '''
+    Checks if a given hash in hex format corresponds to one of the hashes 
+    in the top of the RPC's chain
+    '''
+
+    req_data = request.get_json()
+
+    if 'hash' not in req_data:
+        return error_response('No hash specified')
+
+    hash_bytes = data_hexundigest(req_data['hash'])
+
+    return jsonify(rpc.check_tophash_exists(hash_bytes))
 
 @app.route('/ping', methods = ['POST'])
 def pong():

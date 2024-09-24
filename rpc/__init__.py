@@ -1,6 +1,6 @@
 
 import logging, time
-from typing import List, Self
+from typing import List, Self, Tuple
 
 from coretc import Chain, Block, ChainSettings
 from coretc.status import BlockStatus
@@ -190,10 +190,43 @@ class RPC:
             logger.debug('Received valid block. Added to chain.')
 
             # Propagate to other peers.
-            logger.critical('NEW BLOCK PROPAGATION NOT IMPLEMENTED') 
+            prop_count, prop_err_count = self.propagate_block(block)
         
+            logger.info(f'Block propagated to {prop_count} peers. Rejected by {prop_err_count} peers')
+
             return {'status': int(result)}
     
+    def propagate_block(self, block: Block) -> Tuple[int, int]:
+        '''
+        Propagate the block to peers
+
+        Args:
+            block (Block): Block to propagate
+
+        Returns:
+            Tuple[int, int]: The number of peers to which the block was passed and number rejected
+        '''
+
+        #logger.critical('NEW BLOCK PROPAGATION NOT IMPLEMENTED') 
+        
+        blockhash = block.hash_sha256()
+
+        # For all peers in use, check if the block is in their chain, if not send it
+        sent_block_count: int = 0
+        rej_block_count: int  = 0
+
+        for peer in self.peers_in_use:
+            
+            if self.rpc_client.check_tophash_exists(blockhash, peer): continue
+            
+            sent_block_count += 1
+
+            if not self.rpc_client.submit_block(block, peer) == BlockStatus.VALID:
+                rej_block_count += 1
+                logger.warn(f'Peer {peer.hoststr()} rejected propagated block. Why?')
+
+        return sent_block_count, rej_block_count
+
     def add_tx_to_mempool(self, tx_json: dict) -> bool:
         '''
         Used to add a transaction to the node's mempool and propagate it to other nodes
@@ -267,6 +300,9 @@ class RPC:
 
             return result
     
+    def check_tophash_exists(self, blockhash: bytes) -> dict:
+        return {'exists': self.chain.check_tophash_exists(blockhash)}
+
     def get_top_hash(self) -> str:
         '''
         Retrieve the current top hash in the chain of this node

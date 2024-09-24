@@ -5,7 +5,7 @@ from typing import List
 
 from coretc.blocks import Block
 from coretc.status import BlockStatus
-from coretc.utils.generic import data_hexundigest
+from coretc.utils.generic import data_hexdigest, data_hexundigest
 
 from .peers import Peer, PeerStatus
 from .rpcutils import make_rpc_request
@@ -19,6 +19,7 @@ class RPCClient:
     def use_peer(self, peer: Peer):
         self.selected_peer = peer
     
+
     def get_tophash(self, peer: Peer | None = None) -> bytes | None:
         '''
         Get the tophash of a given peer
@@ -61,6 +62,38 @@ class RPCClient:
 
         return tophash
     
+    def check_tophash_exists(self, hash_bytes: bytes, peer: Peer | None) -> bool:
+
+        if peer is None:
+            peer = self.selected_peer
+
+        if peer is None:
+            logger.critical('Cannot check for existance of top hash if no peer is specified')
+            return True
+    
+        response_json = make_rpc_request(
+            peer.form_url('/tophashexists'),
+            json_data = {'hash': data_hexdigest(hash_bytes)},
+            method = 'POST'
+        )
+
+        if response_json is None:
+            response_json = {'error': 'Request error when accessing peer'}
+
+        if 'error' in response_json:
+            logger.error(f'Error checking tophash existance from peer {peer.hoststr()}: {str(response_json)}')
+            return True
+
+        if 'exists' not in response_json:
+            logger.error(f'Peer {peer.hoststr()} gave invalid response')
+            return True
+        
+        if not isinstance(response_json['exists'], bool):
+            logger.error(f'Peer {peer.hoststr()} returned invalid type for boolean')
+            return True
+
+        return response_json['exists']
+
     def get_topdiff(self, peer: Peer | None = None) -> int | None:
         '''
         Get the top difficulty of a given peer
