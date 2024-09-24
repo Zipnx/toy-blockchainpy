@@ -6,6 +6,7 @@ from tests.mining_tests import TestBlockMining
 from tests.misc_tests import TestMisc
 from tests.forktree_tests import TestForkTree
 from tests.txvalidation_tests import TestTXValidation
+from tests.txsecurity_tests import TXSecurity
 
 def init_test_suite() -> unittest.TestSuite:
     suite = unittest.TestSuite()
@@ -14,6 +15,7 @@ def init_test_suite() -> unittest.TestSuite:
     suite.addTest(unittest.makeSuite(TestBlockMining))
     suite.addTest(unittest.makeSuite(TestChain))
     suite.addTest(unittest.makeSuite(TestTXValidation))
+    suite.addTest(unittest.makeSuite(TXSecurity))
 
     suite.addTest(unittest.makeSuite(TestForkTree))
 

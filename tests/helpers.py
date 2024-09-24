@@ -3,8 +3,11 @@ from os.path import exists, isdir
 
 import os
 
+from typing import List
 from coretc.wallet import Wallet
 from coretc import Chain, ChainSettings, Block, ForkBlock, TX, UTXO, difficulty, mine_block
+
+import time
 
 CHAIN_PATH = './pytests-chain-tmp/'
 
@@ -20,12 +23,25 @@ def create_empty_chain():
     
     return chain
 
+def create_chain_block(chain: Chain, mine: bool = True, txs: List[TX] = []) -> Block:
+
+    blk = Block(
+        previous_hash = chain.get_tophash(),
+        timestamp = int(time.time()),
+        difficulty_bits = chain.get_top_difficulty(),
+        nonce = b'Some data',
+        transactions = txs,
+        _VERSION = 1
+    )
+    
+    return blk if not mine else mine_block(blk)
+
 def create_example_block(prev: bytes = b'\x00'*32, mine: bool = True) -> Block:
     #blk = Block(prev, 1, 0x2000FFFF, b'', [])
 
     blk = Block(
         previous_hash = prev,
-        timestamp = 696969,
+        timestamp = int(time.time()),
         difficulty_bits = 0x2000FFFF,
         nonce = b'Some data',
         transactions = [],

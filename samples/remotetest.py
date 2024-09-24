@@ -32,11 +32,11 @@ def main():
 
     print(rpc.get_foreign_peers())
 
-    return
+    #return
 
     chain = Chain(ChainSettings(debug_dont_save=True))
 
-    for i in range(16):
+    for i in range(12):
         if i == 7:
             block = sample_block(chain, prev = b'\x69'*32)
 

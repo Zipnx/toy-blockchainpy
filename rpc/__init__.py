@@ -130,7 +130,31 @@ class RPC:
 
         return blk.to_json()
 
+    def get_blocks(self, block_height: int, block_count: int) -> list:
+        '''
+        Get blocks in bulk
+        *** THIS WILL BE CHANGED, MAYBE BSON OR SMTH IDK ***
 
+        Args:
+            block_height (int): Height from which the blocks will come after (inclusive)
+            block_count  (int): Count of blocks returned
+
+        Returns:
+            dict: The blocks' JSON data in dict form
+        '''
+        
+        # TODO: Make an actual bulk retrieval, this is dogshit for perf
+
+        blocks: List[dict] = []
+
+        for height in range(block_height, min(block_height + block_count, self.chain.get_height())):
+            blk = self.get_block(height)
+
+            if 'error' in blk: return blk
+
+            blocks.append(blk)
+
+        return blocks
 
     def add_block(self, block_json: dict) -> dict:
         '''

@@ -2,7 +2,7 @@
 import os,sys,argparse, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from coretc.utils.generic import data_hexdigest
+from coretc.utils.generic import data_hexdigest, is_valid_digit
 from rpc import RPC
 from rpc.settings import RPCSettings, load_config
 
@@ -91,27 +91,54 @@ def get_block():
     req_data = request.get_json()
 
     if 'height' not in req_data:
-        return error_response('Invalid response')
+        return error_response('Invalid request')
 
 
     target_height = req_data['height']
+    
+    if not is_valid_digit(target_height):
+        return error_response('Height must be in int form')
 
-    if not isinstance(target_height, int):
-        if not str(target_height).isdigit(): return error_response('Height must be in int form')
-        
-        target_height = int(target_height)
+    target_height = int(target_height)
 
     if target_height <= 0:
         return error_response('Target height must be >= 1')
 
     return jsonify(rpc.get_block(target_height))
 
-@app.route('/getblocks')
+@app.route('/getblocks', methods = ['POST'])
 def get_blocks_bulk():
     '''
     Gets a chunk of blocks
     '''
-    return error_response('Unimplemented')
+
+    req_data = request.get_json()
+
+    if 'height' not in req_data or 'count' not in req_data:
+        return error_response('Invalid request')
+
+    target_height = req_data['height']
+    target_count  = req_data['count']
+
+    if not is_valid_digit(target_height):
+        return error_response('Height must be in int form')
+
+    if not is_valid_digit(target_count):
+        return error_response('Count must be in int form')
+
+    target_height = int(target_height)
+    target_count = int(target_count)
+    
+    if target_height <= 0:
+        return error_response('Target height must be >= 1')
+
+    if target_count <= 0:
+        return error_response('Target count must be >= 1')
+
+    if target_count > 256:
+        return error_response('Cannot get more than 256 blocks at a time')
+
+    return jsonify(rpc.get_blocks(target_height, target_count))
 
 @app.route('/getblockhash', methods = ['POST'])
 def get_blockhash():

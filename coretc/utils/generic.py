@@ -119,3 +119,17 @@ def load_bson_from_file(filename: str, verbose: bool = True) -> dict | None:
 
 def dump_json(json_data: dict) -> None:
     print(json.dumps(json_data, indent = 4))
+
+def is_valid_digit(obj: object) -> bool:
+    '''
+    Checks if an object is a valid int
+
+    Args:
+        obj (object): Object to test
+
+    Returns:
+        bool: Whether its a valid digit
+    '''
+
+    if isinstance(obj, int): return True
+    return str(obj).isdigit()

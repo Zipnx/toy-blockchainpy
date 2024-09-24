@@ -1,10 +1,6 @@
 
 from enum import IntEnum
 
-class TXStatus(IntEnum):
-    
-    VALID = 1
-
 class BlockStatus(IntEnum):
     INVALID_PREVHASH = -1
     INVALID_DIFFICULTY = -2
