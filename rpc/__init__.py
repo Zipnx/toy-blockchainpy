@@ -1,6 +1,6 @@
 
 import logging, time
-from typing import List, Self, Tuple
+from typing import List, MutableMapping, Self, Tuple
 
 from coretc import Chain, Block, ChainSettings
 from coretc.status import BlockStatus
@@ -20,7 +20,7 @@ class RPC:
     def __init__(self, settings: RPCSettings):
         logger.info('Initialized RPC')
         
-        self.VERSION = '0.1.0'
+        self.VERSION = '0.2.0'
         self.settings = settings
         self.lock = Lock()
         self.chain: Chain = Chain(settings.get_chainsettings())
@@ -110,6 +110,34 @@ class RPC:
             logger.debug(f'Interacting with {peer_count} other peers')
 
         return len(self.peers_in_use)
+    
+    def sync_height(self) -> int:
+        '''
+        Check the used nodes and sync with the top one
+        
+        Returns:
+            int: Height synced to
+        '''
+         
+        # Gotta think about malicious nodes that send a fake height response & how to handle that
+        # My idea rn is to temporarily store those blocks in a list, since they may have to be reverted
+        
+        # First lets get the heights of all our peers and sort them descending
+        peer_heights: MutableMapping[Peer, int] = {}
+        
+        for peer in self.peers_in_use:
+            peer_height = self.rpc_client.get_height(peer)
+
+            if peer_height > self.chain.get_height():
+                peer_heights[peer] = peer_height
+        
+        if len(peer_heights) == 0:
+            logger.info('No need to sync. Chain up to date.')
+            return self.chain.get_height()
+
+        # Need to be able to give a node our latest hash and get the number of additional blocks it has
+
+        return -1
 
     def get_block(self, block_height: int) -> dict:
         '''
@@ -121,14 +149,15 @@ class RPC:
         Returns:
             dict: The block's JSON data in dict form
         '''
+        
+        with self.lock:
+            blk = self.chain.get_block_by_height(block_height, get_top_fork = True)
 
-        blk = self.chain.get_block_by_height(block_height, get_top_fork = True)
+            if blk is None:
+                logger.warn('An invalid block height was requested')
+                return {'error': 'Block not found'}
 
-        if blk is None:
-            logger.warn('An invalid block height was requested')
-            return {'error': 'Block not found'}
-
-        return blk.to_json()
+            return blk.to_json()
 
     def get_blocks(self, block_height: int, block_count: int) -> list:
         '''
@@ -144,17 +173,18 @@ class RPC:
         '''
         
         # TODO: Make an actual bulk retrieval, this is dogshit for perf
+        
+        with self.lock:
+            blocks: List[dict] = []
 
-        blocks: List[dict] = []
+            for height in range(block_height, min(block_height + block_count, self.chain.get_height())):
+                blk = self.get_block(height)
 
-        for height in range(block_height, min(block_height + block_count, self.chain.get_height())):
-            blk = self.get_block(height)
+                if 'error' in blk: return blk
 
-            if 'error' in blk: return blk
+                blocks.append(blk)
 
-            blocks.append(blk)
-
-        return blocks
+            return blocks
 
     def add_block(self, block_json: dict) -> dict:
         '''

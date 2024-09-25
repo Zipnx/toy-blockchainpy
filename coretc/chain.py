@@ -57,6 +57,9 @@ class Chain:
 
         self.memory_pool: MemPool = MemPool(self.opts.mempool_path)
         self.memory_pool.load_mempool()
+
+        self._temporary_data_mode: bool = False # In this mode the chain will not save anything,
+                                                # everything is considered temporary
     
     def validate_transaction(self, transaction: TX, fork: ForkBlock | None = None) -> BlockStatus:
         '''
@@ -403,7 +406,7 @@ class Chain:
             self.difficulty = newdiff
 
         # Try to save block to the block store, should match the blocks per file ideally
-        while len(self.blocks) > self.settings.blocks_per_store_file and not self.settings.debug_dont_save:
+        while len(self.blocks) > self.settings.blocks_per_store_file and not self.settings.debug_dont_save and not self._temporary_data_mode:
             chunk_size = self.settings.blocks_per_store_file - (self.block_store.height % self.settings.blocks_per_store_file)
 
             logger.debug(f'Permanently storing {chunk_size} blocks.')
@@ -734,12 +737,45 @@ class Chain:
         '''
         
         return False
+    
+    def set_temporary_mode(self, value: bool) -> None:
+        '''
+        Enable/Disable temporary mode, under which no changes are saved to disk
+        *** WARNING: Enabling temporary mode also commits all data to disk ***
+
+        Args:
+            value (bool): Flag
+        '''
+
+        if value:
+            # Commit all current data to storage
+            self.save()
+            logger.warn('Temporary mode enabled.')
+
+        else:
+            logger.warn('Temporary mode disabled.')
+
+        self._temporary_data_mode = value
+
+    def wipe_temporary_data(self) -> None:
+        '''
+        Wipes data that is not stored on file (used for syncing)
+        '''
+        logger.debug('Wiping temporary data')
+
+        self.blocks.clear()
+        self.utxo_set.load_utxos() # Reload previous stored state
+        self.memory_pool.load_mempool()
 
     def save(self) -> None:
         '''
         To be executed before exiting. This stores all established blocks in the storage
         Also saves the UTXO set and (in the future TODO) MemPool
         '''
+        
+        if self._temporary_data_mode:
+            logger.error('Cannot save while temporary mode is enabled.')
+            return
 
         if self.settings.debug_dont_save: return
 
