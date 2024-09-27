@@ -110,7 +110,56 @@ class RPC:
             logger.debug(f'Interacting with {peer_count} other peers')
 
         return len(self.peers_in_use)
+
+    def _send_hello(self, peer: Peer) -> bool:
+        '''
+        Used internally to establish connection with other rpc servers
+
+        Args:
+            peer (Peer): Foreign peer to send hello to
+
+        Returns:
+            bool: Whether the request went through (status unconfirmed)
+        '''
+        
+        node_info = {
+            'height': self.chain.get_height(),
+            'tophash': self.chain.get_tophash(),
+            'port': self.settings.port,
+            'network': 'unimplemented', # TODO
+            'peers': self.get_peers_json()
+        }
+
+        return self.rpc_client.peer_establish(node_info, peer)
     
+    def handle_hello(self, host_ip: str, peer_info: dict) -> dict:
+        '''
+        Handle a hello request and if valid add the peer to the current peers
+        '''
+
+        with self.lock:
+
+            peer_use_count = len(self.peers_in_use)
+            # TODO: Validate with jsonschema, for now we assume its valid i dont care
+            # TODO: Also validate the network type
+        
+            new_peer = Peer(host = host_ip, port = peer_info['port'], status = PeerStatus.ONLINE)
+        
+            # TODO: Challenge the peer
+            # TODO: If the height is higher than this nodes, check for sync
+        
+            if not peer_use_count >= self.settings.max_connections:
+                self.peers_in_use.append(new_peer)
+
+            self.peers.append(new_peer)
+        
+            logger.debug(f'New peer found: {new_peer.hoststr()}')
+
+
+            logger.debug(f'Interacting with {peer_use_count} other peers')
+
+            return {}
+
     def sync_height(self) -> int:
         '''
         Check the used nodes and sync with the top one

@@ -16,3 +16,11 @@
 - [ ] During block propagation, send the height along the new block, incase syncing is needed
 - [ ] [BUG] Make it so a node cannot have itself as a peer 
 - [ ] [BUG] Sometimes the node rejects valid blocks (thats what past me wrote down idk)
+
+## Dashboard
+
+> Making a dashboard at some point could be fun. Also showing a graph of nodes
+
+## Wallet
+
+> Making just a small PoC CLI or GUI wallet would also be nice

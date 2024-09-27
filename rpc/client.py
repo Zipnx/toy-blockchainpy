@@ -29,9 +29,7 @@ class RPCClient:
         Returns:
             bytes | None: Either the tophash in byte form or None
         '''
-
-        if peer is None:
-            peer = self.selected_peer
+        peer = peer or self.selected_peer
         
         if peer is None:
             logger.critical('Cannot get the tophash when no peer is specified')
@@ -61,9 +59,8 @@ class RPCClient:
     
     def check_tophash_exists(self, hash_bytes: bytes, peer: Peer | None) -> bool:
 
-        if peer is None:
-            peer = self.selected_peer
-
+        peer = peer or self.selected_peer
+        
         if peer is None:
             logger.critical('Cannot check for existance of top hash if no peer is specified')
             return True
@@ -97,9 +94,7 @@ class RPCClient:
         Returns:
             bytes | None: Either the difficulty bits or None
         '''
-
-        if peer is None:
-            peer = self.selected_peer
+        peer = peer or self.selected_peer
         
         if peer is None:
             logger.critical('Cannot get the top difficulty when no peer is specified')
@@ -139,9 +134,7 @@ class RPCClient:
         Returns:
             int: The height. Will be <0 in case of an error
         '''
-
-        if peer is None:
-            peer = self.selected_peer
+        peer = peer or self.selected_peer
 
         if peer is None:
             logger.critical('Cannot get height from unspecified peer')
@@ -177,9 +170,8 @@ class RPCClient:
             BlockStatus: The addition response status from the other peer
         '''
         
-        if peer is None:
-            peer = self.selected_peer
-        
+        peer = peer or self.selected_peer
+
         if peer is None:
             logger.critical('Cannot get the tophash when no peer is specified')
             return BlockStatus.INVALID_ERROR
@@ -231,9 +223,8 @@ class RPCClient:
             'used': []
         }
         
-        if peer is None:
-            peer = self.selected_peer
-        
+        peer = peer or self.selected_peer
+
         if peer is None:
             logger.critical('Cannot get peer information when no peer is specified')
             return result
@@ -269,6 +260,43 @@ class RPCClient:
                 result[f].append(peer_obj)
 
         return result
+    
+    def peer_establish(self, node_info: dict, peer: Peer | None) -> bool:
+        '''
+        Send the node information to a foreign peer to establish a connection
+
+        Args:
+            node_info (dict): Node information in JSON format
+
+        Returns:
+            bool: Whether the data was accepted.
+        '''
+
+        peer = peer or self.selected_peer
+
+        if peer is None:
+            logger.critical('Cannot establish connection with an unspecified peer')
+            return False
+
+        response_json = make_rpc_request(
+            peer.form_url('/hellopeer'),
+            json_data = node_info,
+            method = 'POST'
+        )
+
+        if 'error' in response_json:
+            logger.error(f'Error sending hello to {peer.hoststr()}: {response_json}')
+            return False
+
+        if 'status' not in response_json:
+            logger.error(f'Peer {peer.hoststr()} sent invalid hello response')
+            return False
+
+        if not isinstance(response_json['status'], bool):
+            logger.error(f'Peer {peer.hoststr()} sent invalid hello response type')
+            return False
+
+        return response_json['status']
 
     def ping(self, peer: Peer | None) -> bool:
         '''
@@ -280,9 +308,8 @@ class RPCClient:
             bool: Whether the ping was successful
         '''
 
-        if peer is None:
-            peer = self.selected_peer
-        
+        peer = peer or self.selected_peer
+
         if peer is None:
             logger.critical('Cannot get the tophash when no peer is specified')
             return False

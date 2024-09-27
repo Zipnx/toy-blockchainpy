@@ -213,6 +213,41 @@ def check_tophash_exists():
 
     return jsonify(rpc.check_tophash_exists(hash_bytes))
 
+# This endpoint is the called by peers wanting to make themselves known to this peers
+# TODO: They undergo certain verification which will be improved later on
+
+'''
+How it would probably go
+
+A -> B hellopeer
+    Data sent:
+        1. Height & Top hash
+        2. A's node port
+        3. Personal info (network type main / test net, etc...)
+
+A <- B Asks for the block info at some random heights 
+
+A -> B Responds with valid info
+
+Now B sends a hellopeer to repeat the process and as a result they are now acquainted
+
+Afterwards both nodes share their peer nodes
+
+TODO: 
+In future for network balancing if 2 nodes share alot of peers or are in the same sort of
+"sub-network" they should prioritize peering with more foreign nodes. 
+Graph theory strikes again
+
+'''
+
+
+@app.route('/hellopeer', methods = ['POST'])
+def peer_init():
+    
+    # TODO: Will remain unimplemented until i make the peer manager cause this is turning
+    #       into a rats nest
+    return error_response('Unimplemented')
+
 @app.route('/ping', methods = ['POST'])
 def pong():
     return jsonify({
