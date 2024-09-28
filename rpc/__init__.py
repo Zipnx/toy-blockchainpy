@@ -11,8 +11,8 @@ from threading import Lock
 
 from rpc.client import RPCClient
 
-from .peers import Peer, PeerStatus
-from .settings import RPCSettings
+from rpc.peers import Peer, PeerStatus
+from rpc.settings import RPCSettings
 
 logger = logging.getLogger('chain-rpc')
 
@@ -70,7 +70,7 @@ class RPC:
                 return False
 
             peerobj = Peer(host = peer_entry['host'], port = peer_entry['port'])
-            
+             
             # Check if it's a duplicate
             if peerobj in self.peers:
                 logger.warn('Duplicate peer found in peers.json file!')
@@ -123,6 +123,7 @@ class RPC:
         '''
         
         node_info = {
+            # TODO: Also check the version (rpc & core) 
             'height': self.chain.get_height(),
             'tophash': self.chain.get_tophash(),
             'port': self.settings.port,

@@ -13,6 +13,8 @@ IP_REG = re.compile(r'\b((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-
 
 USERNAME_REG = re.compile(r'^[0-9A-Za-z+_-]*')
 
+VERSION_REG = re.compile(r'[0-9]*\.[0-9]*\.[0-9]')
+
 def valid_ipv4(ip: str) -> bool: 
     '''
     Checks if the given input is an IPv4
@@ -85,3 +87,16 @@ def valid_username(username: str) -> bool:
     if len(username) > 20: return False
 
     return USERNAME_REG.match(username) is not None
+
+def valid_version(version_string: str) -> bool:
+    '''
+    Check the given version formatting
+
+    Args:
+        version_string (str): String to check for format X.Y.Z
+
+    Returns:
+        bool: Validity
+    '''
+    return VERSION_REG.match(version_string) is not None
+

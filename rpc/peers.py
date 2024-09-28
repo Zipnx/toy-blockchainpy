@@ -1,24 +1,29 @@
 
+import json
 from typing import Optional, Self
 from dataclasses import dataclass
 from enum import IntEnum
 
-class PeerStatus(IntEnum):
-    OFFLINE = 0
-    ONLINE  = 1
-    LIMITED = 2
-    BANNED  = 3
+from rpc.rpcutils import NetworkType, PeerStatus, check_peer_json
 
 # TODO: Add a penalty system at some point
 
 @dataclass(init = True)
 class Peer:
-    host: str
-    port: int = 1993
     
-    status: PeerStatus = PeerStatus.OFFLINE
+    host: str
+    
+    net: NetworkType    = NetworkType.MAINNET
+    rpc_version: str    = '' # These get filled out automatically when connecting to a peer
+    core_version: str   = ''
 
-    ssl_enabled: bool = False # TODO: Fix this at some point 
+    port: int           = 1993
+    
+    last_height: int    = -1
+    last_seen: int      = -1
+    status: PeerStatus  = PeerStatus.OFFLINE
+
+    ssl_enabled: bool   = False # TODO: Fix this at some point 
 
     def form_url(self, endpoint: str = '/') -> str:
         '''
@@ -52,8 +57,18 @@ class Peer:
             dict: Resulting dict
         '''
         return {
+            'net': int(self.net),
+            'version_rpc': self.rpc_version,
+            'version_core': self.core_version,
+
             'host': self.host,
-            'port': self.port
+            'port': self.port,
+
+            'last_height': self.last_height,
+            'last_seen': self.last_seen,
+            'last_status': int(self.status),
+
+            'ssl_enabled': self.ssl_enabled
         }
 
     @staticmethod
@@ -66,18 +81,22 @@ class Peer:
         Returns:
             Peer | None: The resulting Peer object or None if an error occured
         '''
-        params = ['host', 'port']
-
-        for param in params:
-            if param not in json_data:
-                return None
         
-        if not isinstance(json_data['port'], int):
-            if not str(json_data['port']).isdigit(): return None
+        if not check_peer_json(json_data): return None
 
         return Peer(
-            host = json_data['host'],
-            port = int(json_data['port'])
+            net             = NetworkType(json_data['net']),
+            rpc_version     = json_data['version_rpc'],
+            core_version    = json_data['version_core'],
+
+            host            = json_data['host'],
+            port            = json_data['port'],
+
+            last_height     = json_data['last_height'],
+            last_seen       = json_data['last_seen'],
+            status          = json_data['last_status'],
+
+            ssl_enabled     = json_data['ssl_enabled']
         )
 
     def __eq__(self, other) -> bool:
