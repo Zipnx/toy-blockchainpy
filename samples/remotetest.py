@@ -23,7 +23,7 @@ def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 def main():
 
     rpc = RPCClient()
-    rpc.use_peer(Peer('127.0.0.1', 2000))
+    rpc.use_peer(Peer(host = '127.0.0.1', port = 2000))
     #rpc.use_peer(Peer('127.0.0.1', 2001))
     #rpc.use_peer(Peer('127.0.0.1', 2002))
     

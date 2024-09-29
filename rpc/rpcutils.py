@@ -64,7 +64,7 @@ PEER_JSON_SCHEMA = {
         'last_seen': {'type': 'integer'},
         'last_status': {'type': 'number'},
         
-        'ssl_enabled': {'type': 'bool'}
+        'ssl_enabled': {'type': 'boolean'}
 
     }
 }

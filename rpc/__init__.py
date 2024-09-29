@@ -1,6 +1,6 @@
 
 import logging, time
-from typing import List, MutableMapping, Self, Tuple
+from typing import List, MutableMapping, Tuple
 
 from coretc import Chain, Block, ChainSettings
 from coretc.status import BlockStatus

@@ -1,6 +1,10 @@
 
 import os,sys,argparse, json
+from typing import List
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+from rpc.peers import Peer, NetworkType
+
 
 from rich.console import Console
 from rich.panel import Panel
@@ -57,7 +61,7 @@ def wizard(con: Console) -> tuple:
 
     con.print(Panel("Enter at least 1 peer to use."))
 
-    peers = []
+    peers: List[Peer] = []
 
     while True:
         
@@ -74,13 +78,25 @@ def wizard(con: Console) -> tuple:
             if valid.valid_port(peer_port): break
 
             print('Invalid port number.')
+
+        # Select network (mainnet / testnet)
+        is_mainnet = widget.get_yes_no('Is this a MainNet node? (N=testnet) ', default = True)
         
-        peers.append({'host': peer_addr, 'port': peer_port})
+        peers.append(Peer(
+            host = peer_addr,
+            port = peer_port,
+            net  = NetworkType.MAINNET if is_mainnet else NetworkType.TESTNET
+        ))
 
         if not widget.get_yes_no('Do you wish to add another peer?', default = False):
             break
+    
+    peer_json = []
 
-    return ( (host, port), node_directory, (node_admin, node_pass), peers )
+    for peer in peers:
+        peer_json.append(peer.to_json())
+
+    return ( (host, port), node_directory, (node_admin, node_pass), peer_json )
 
 def main():
     console = Console()
