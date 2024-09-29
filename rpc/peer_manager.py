@@ -139,6 +139,19 @@ class PeerManager:
 
         for peer in self.peers_inuse:
             yield peer
+    
+    def is_peer_used(self, peer: Peer) -> bool:
+        '''
+        Check if a peer is being used.
+
+        Args:
+            peer (Peer): Peer to Check
+
+        Returns:
+            bool: Whether it is or not
+        '''
+
+        return peer in self.peers_inuse
 
     def get_peers_known(self) -> Iterable[Peer]:
         '''

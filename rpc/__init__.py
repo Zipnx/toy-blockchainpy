@@ -11,6 +11,7 @@ from threading import Lock
 
 from rpc.client import RPCClient
 
+from rpc.peer_manager import PeerManager
 from rpc.peers import Peer, PeerStatus
 from rpc.settings import RPCSettings
 
@@ -25,21 +26,22 @@ class RPC:
         self.lock = Lock()
         self.chain: Chain = Chain(settings.get_chainsettings())
         
-        self.peers: List[Peer] = []
-        self.peers_in_use: List[Peer] = [] 
+        #self.peers: List[Peer] = []
+        #self.peers_in_use: List[Peer] = [] 
         
         self.rpc_client = RPCClient()
 
-        self.load_peers()
-        self.select_peers()
+        self.peer_manager = PeerManager(
+            rpc_client      = self.rpc_client,
+            peer_file       = self.settings.node_directory + '/peers.json',
+            max_peers_used  = self.settings.max_connections
+        )
 
+        self.peer_manager.load_peers()
+        self.peer_manager.pick_peers_used()
+
+    '''
     def load_peers(self) -> bool:
-        '''
-        Load available peers from the node's peers.json file
-        
-        Returns:
-            bool: Whether the peers where loaded successfully
-        '''
         logger.debug('Loading peer information')
 
         peer_json = load_json_from_file(self.settings.node_directory + '/peers.json',
@@ -85,12 +87,6 @@ class RPC:
         return True
     
     def select_peers(self) -> int:
-        '''
-        Pings & Selects peers to use from the total peer list.
-
-        Returns:
-            int: Total peers set to be used
-        '''
         
         self.peers_in_use.clear()
         
@@ -110,6 +106,7 @@ class RPC:
             logger.debug(f'Interacting with {peer_count} other peers')
 
         return len(self.peers_in_use)
+    '''
 
     def _send_hello(self, peer: Peer) -> bool:
         '''
@@ -140,7 +137,7 @@ class RPC:
 
         with self.lock:
 
-            peer_use_count = len(self.peers_in_use)
+            peer_use_count = len(self.peer_manager.peers_inuse)
             # TODO: Validate with jsonschema, for now we assume its valid i dont care
             # TODO: Also validate the network type
         
@@ -149,10 +146,7 @@ class RPC:
             # TODO: Challenge the peer
             # TODO: If the height is higher than this nodes, check for sync
         
-            if not peer_use_count >= self.settings.max_connections:
-                self.peers_in_use.append(new_peer)
-
-            self.peers.append(new_peer)
+            self.peer_manager.add_peer_to_use(new_peer)
         
             logger.debug(f'New peer found: {new_peer.hoststr()}')
 
@@ -175,7 +169,7 @@ class RPC:
         # First lets get the heights of all our peers and sort them descending
         peer_heights: MutableMapping[Peer, int] = {}
         
-        for peer in self.peers_in_use:
+        for peer in self.peer_manager.get_peers_used():
             peer_height = self.rpc_client.get_height(peer)
 
             if peer_height > self.chain.get_height():
@@ -295,7 +289,7 @@ class RPC:
         sent_block_count: int = 0
         rej_block_count: int  = 0
 
-        for peer in self.peers_in_use:
+        for peer in self.peer_manager.get_peers_used():
             
             if self.rpc_client.check_tophash_exists(blockhash, peer): continue
             
@@ -330,7 +324,7 @@ class RPC:
         return {
             'version': self.VERSION,
             'status': True, # TODO: Change this later to be dynamic
-            'peercount': len(self.peers),
+            'peercount': len(self.peer_manager.known_peers),
             'timestamp': int(time.time())
         }
 
@@ -361,7 +355,7 @@ class RPC:
                 'used': []
             }
             
-            for peer in self.peers:
+            for peer in self.peer_manager.get_peers_known():
 
                 peer_json = peer.to_json()
 
@@ -375,7 +369,7 @@ class RPC:
                     case PeerStatus.BANNED:
                         result['banned'].append(peer_json)
 
-                if peer in self.peers_in_use:
+                if self.peer_manager.is_peer_used(peer):
                     result['used'].append(peer_json)
 
             return result

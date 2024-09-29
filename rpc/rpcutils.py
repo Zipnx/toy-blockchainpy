@@ -58,7 +58,7 @@ PEER_JSON_SCHEMA = {
         'version_core': {'type': 'string'},
 
         'host': {'type': 'string'},
-        'port': {'type': 'string'},
+        'port': {'type': 'integer'},
 
         'last_height': {'type': 'integer'},
         'last_seen': {'type': 'integer'},
@@ -80,6 +80,7 @@ def check_peer_json(json_data: dict) -> bool:
         bool: Whether it's valid
     '''
     
+
     # Initial validation of the schema
     try:
         validate_schema(json_data, schema = PEER_JSON_SCHEMA)
