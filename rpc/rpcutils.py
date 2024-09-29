@@ -65,7 +65,13 @@ PEER_JSON_SCHEMA = {
         
         'ssl_enabled': {'type': 'boolean'}
 
-    }
+    },
+    'required': [
+        'net', 'version_rpc', 'version_core',
+        'host', 'port',
+        'last_height', 'last_seen', 'last_status',
+        'ssl_enabled'
+    ]
 }
 
 def check_peer_json(json_data: dict) -> bool:

@@ -27,11 +27,11 @@ def create_chain_block(chain: Chain, mine: bool = True, txs: List[TX] = []) -> B
 
     blk = Block(
         previous_hash = chain.get_tophash(),
-        timestamp = int(time.time()),
+        timestamp = 69420,
         difficulty_bits = chain.get_top_difficulty(),
         nonce = b'Some data',
         transactions = txs,
-        _VERSION = 1
+        _VERSION = 0
     )
     
     return blk if not mine else mine_block(blk)
@@ -41,7 +41,7 @@ def create_example_block(prev: bytes = b'\x00'*32, mine: bool = True) -> Block:
 
     blk = Block(
         previous_hash = prev,
-        timestamp = int(time.time()),
+        timestamp = 69420,
         difficulty_bits = 0x2000FFFF,
         nonce = b'Some data',
         transactions = [],
@@ -53,9 +53,14 @@ def create_example_block(prev: bytes = b'\x00'*32, mine: bool = True) -> Block:
 def create_example_tx() -> TX:
     return TX([], [])
 
+#def create_example_utxo(is_input: bool = False) -> UTXO:
+#    return UTXO(b'A'*91, 0.5, 0, b'i'*32, b'I am in pain')
+
+# this bug was absolute dogshit i though i broke the core somehow, fuck this goddamn existance
 def create_example_utxo(is_input: bool = False) -> UTXO:
-    return UTXO(b'A'*91, 0.5, 0, b'i'*32, b'I am in pain')
+    return UTXO(b'A'*91, 0.5, 0, b'i'*32 if is_input else b'', b'I am in pain' if is_input else b'')
     
+
 def forktree_from_json(structure: list, node: ForkBlock | None = None) -> ForkBlock:
 
     '''

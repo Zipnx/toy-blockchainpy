@@ -30,7 +30,18 @@ class TestJsonConversion(unittest.TestCase):
 
         tx_copy: TX | None = TX.from_json(tx_json)
 
-        self.assertIsNotNone(tx_copy, "Error deserializing JSON to TX object")
+        self.assertIsNone(tx_copy, "A transaction with no outputs cannot exist")
+
+        tx = TX([], [create_example_utxo()]).make()
+        tx_json = tx.to_json()
+        
+        #print('\n', tx_json)
+
+        del tx_copy
+        tx_copy = TX.from_json(tx_json)
+        
+
+        self.assertIsNotNone(tx_copy, 'TX JSON Should be valid')
 
         if tx_copy is not None:
             self.assertEqual(tx.hash_sha256(), tx_copy.hash_sha256(),

@@ -2,9 +2,11 @@
 from binascii import hexlify, unhexlify
 from copy import deepcopy
 from hashlib import sha256
+import json
 from typing import List, Optional
 from dataclasses import dataclass, field
 import os, logging
+from coretc.object_schemas import TX_JSON_SCHEMA, is_schema_valid
 from coretc.utils.errors import deprecated
 
 from coretc.utxo import UTXO
@@ -101,6 +103,22 @@ class TX:
             'nonce': data_hexdigest(self._nonce),
             'txid': data_hexdigest(self.get_txid())
         }
+    
+    @staticmethod
+    def valid_transaction_json(json_data: dict) -> bool:
+        '''
+        Validate the schema of a tx object in JSON form
+
+        Args:
+            json_data (dict): TX in json form
+
+        Returns:
+            bool: Whether its valid or not
+        '''
+
+        if not is_schema_valid(json_data, TX_JSON_SCHEMA): return False
+
+        return True
 
     @staticmethod
     def from_json(json_data: dict) -> Optional['TX']:
@@ -114,12 +132,7 @@ class TX:
             TX: Resulting TX object
         '''
         
-        req_fields = ['inputs', 'outputs', 'nonce', 'txid']
-
-        if not len(json_data.keys()) == len(req_fields): return None
-
-        for f in req_fields:
-            if f not in json_data.keys(): return None
+        if not TX.valid_transaction_json(json_data): return None
 
         res_ins: List[UTXO] = []
         res_out: List[UTXO] = []
@@ -127,15 +140,13 @@ class TX:
         in_json: List[dict] = json_data['inputs']
         out_json: List[dict] = json_data['outputs']
 
-        if not isinstance(in_json, list) or not isinstance(out_json, list): return None
-
         # Parse the UTXO inputs
 
         for utxo_json in in_json:
             obj = UTXO.from_json(utxo_json)
 
             if obj is None: 
-                #print('error in input deserialization')
+                #print('******************** error in input deserialization')
                 return None
             
             res_ins.append(obj)
@@ -146,7 +157,7 @@ class TX:
             obj = UTXO.from_json(utxo_json)
 
             if obj is None: 
-                #print('error in output deserialization')
+                #print('************************** error in output deserialization')
                 return None
 
             res_out.append(obj)
@@ -156,6 +167,7 @@ class TX:
             outputs     = res_out,
             _nonce      = data_hexundigest(json_data['nonce'])
         )
+
         
         if result is None:
             logger.error('Error creating TX object from JSON data')
@@ -163,6 +175,13 @@ class TX:
 
         if not json_data['txid'] == data_hexdigest(result.hash_sha256()):
             logger.error('Deserialized TX does not have the same transaction ID')
+            logger.error(f'Invalid txid: {data_hexdigest(result.hash_sha256())}')
+
+
+            #logger.error(json.dumps(result.to_json()['outputs'], indent = 4))
+            #logger.error(f'New utxo hash: {data_hexdigest(result.outputs[0].hash_sha256())}')
+            #logger.error(result.outputs[0])
+
             return None
 
         return result

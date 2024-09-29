@@ -12,6 +12,8 @@ from coretc.difficulty import hashDifficulty, adjustDifficulty, getDifficultyTar
 from coretc.transaction import TX
 from coretc.utils.generic import data_hexdigest, data_hexundigest
 
+from coretc.object_schemas import BLOCK_JSON_SCHEMA, is_schema_valid
+
 logger = logging.getLogger('tc-core')
 
 @dataclass(init = True)
@@ -91,69 +93,15 @@ class Block:
         Returns:
             bool: Validity result
         '''
-
-        # First check that all the fields are present
-        req_fields = ['version','prev', 'hash', 'timestamp', 'difficulty', 'txs', 'nonce']
-
-        if not len(req_fields) == len(json_data): return False
-
-        for field in req_fields:
-            if field not in json_data: return False
+        
+        if not is_schema_valid(json_data, BLOCK_JSON_SCHEMA): return False
 
         ### Validate the individual field forms ###
-        version = json_data['version']
-        prevhash = json_data['prev']
-        blockhash = json_data['hash']
         timestamp = json_data['timestamp']
         difficulty = json_data['difficulty']
-        txs = json_data['txs']
-        nonce = json_data['nonce']
 
-        # Version is an int & 0 < VERSION < 256
-        if not isinstance(version, int):
-            if not str(version).isdigit(): return False
-            json_data['version'] = int(version)
-
-        if not int(version) > 0 and not int(version) < 256: return False
-
-        # Prev & Current hash, 0x + 32 bytes (64 chars)
-        if not isinstance(prevhash, str): return False
-        if not prevhash[:2] == '0x': return False
-        if not len(prevhash[2:]) == 64: return False
-
-        if not isinstance(blockhash, str): return False
-        if not blockhash[:2] == '0x': return False
-        if not len(blockhash[2:]) == 64: return False
-        
-
-        # Timestamp is a 64 bit int
-        if not isinstance(timestamp, int):
-            if not str(timestamp).isdigit(): return False
-            timestamp = int(timestamp)
-            json_data['timestamp'] = timestamp
-
-        if timestamp <= 0: return False
         if timestamp.bit_length() > 64: return False
-
-        # Difficulty is a 32 bit int exactly
-        
-
-        if not isinstance(difficulty, int):
-            if not str(difficulty).isdigit(): return False
-            difficulty = int(difficulty)
-            json_data['difficulty'] = difficulty
-
         if difficulty.bit_length() > 30: return False
-
-        # TXs is a list
-        if not isinstance(txs, list): return False
-
-        # And the nonce is in hex format, max is 255 bytes 
-        if not isinstance(nonce, str): return False
-        if not nonce[:2] == '0x': return False
-        if not len(nonce[2:]) < 511: return False
-
-        if not len(nonce) < 256: return False
 
         return True
 
