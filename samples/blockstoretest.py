@@ -5,12 +5,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from coretc.blockstorage import BlockStorage
 from coretc import Chain, Block, mine_block
 from coretc.settings import ChainSettings
-from coretc.utils.generic import dump_json
+from coretc.utils.generic import dump_json, data_hexdigest
 
 import time
 
 def sample_block(bc: Chain, prev: bytes = b'') -> Block:
-
+    print(f'Prev: {data_hexdigest(bc.get_tophash())}')
     if prev:
         blk = Block(prev, int(time.time()), bc.get_top_difficulty(), b'', [])
     else:
@@ -23,6 +23,8 @@ def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 
 def main():
     chain = Chain(settings = ChainSettings())
+    
+    print(chain.get_block_by_height(0))
 
     for i in range(5):
         print(f'{"="*10} BLOCK #{i + 1} {"="*10}')

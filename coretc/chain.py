@@ -163,62 +163,6 @@ class Chain:
                 # Check reward amount
                 if transaction.outgoing_funds() > self.get_top_blockreward():
                     return BlockStatus.INVALID_TX_WRONG_REWARD_AMOUNT
-            '''
-            TODO: Delete this code block when you feel like it
-            # Check UTXOs and TX Forms
-            if not transaction.check_inputs():
-                return BlockStatus.INVALID_TX_INPUTS
-
-            if not transaction.check_outputs():
-                return BlockStatus.INVALID_TX_OUTPUTS
-
-            # Check if the utxo's are even valid to spend
-            for utxo in transaction.inputs:
-            
-                # Check if it has been used in a transaction of the current block / tx
-                for check_utxo in utxos_used:
-                    if check_utxo.compare_as_input(utxo):
-                        logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} spent in current fork')
-                        return BlockStatus.INVALID_TX_UTXO_IS_SPENT
-
-                utxos_used.append(utxo)
-
-                # First check the utxo set
-                utxo_in_set: UTXO | None = self.utxo_set.utxo_get(utxo.txid, utxo.index)
-                
-                if utxo_in_set is not None:
-                    if not utxo_in_set.compare_as_input(utxo):
-                        # The utxo has some modifications that make it invalid
-                        logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} present in utxoset but modified')
-                        return BlockStatus.INVALID_TX_UTXO_IS_SPENT
-                    
-                    # Remember to check if it's used in the fork
-
-                    for fork_utxo in fork_used:
-                        if fork_utxo.compare_as_input(utxo):
-                            logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} present in utxoset but used in fork')
-                            return BlockStatus.INVALID_TX_UTXO_IS_SPENT
-
-                    continue
-                
-                # Then check the fork's set
-                
-                # I hate this solution but fuck it
-                found = False
-                for fork_utxo in fork_added:
-                     
-                    if fork_utxo.compare_as_input(utxo):
-                        found = True
-                        break
-
-                if found: continue
-
-                logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} does not exist.')
-
-                print(fork_added)
-
-                return BlockStatus.INVALID_TX_UTXO_IS_SPENT
-            '''
 
             res = self.validate_transaction(transaction, fork = fork)
 
@@ -240,12 +184,11 @@ class Chain:
             bool: Block validity
         '''
         
-        # TODO: Difficulty changes depending on the additional chain, also the UTXO set (to be implemented)
-        
         block_hash = block.hash_sha256()
         
         # Check if the block is a duplicate already in the fork tree
-        if self.forks is not None and block_hash in self.forks.hash_cache:
+        #if self.forks is not None and block_hash in self.forks.hash_cache:
+        if self.check_tophash_exists(block_hash):
             return BlockStatus.INVALID_DUPLICATE
         
         
@@ -495,6 +438,8 @@ class Chain:
 
         if target_height <= self.block_store.height:
             # Get from the stored block
+
+            if target_height <= 0: return None
 
             return self.block_store.get_block(target_height)
         
