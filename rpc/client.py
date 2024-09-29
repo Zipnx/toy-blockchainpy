@@ -1,14 +1,14 @@
 
 
-import logging, requests
-from typing import List
+import logging, time
+from typing import List, Literal, Tuple
 
 from coretc.blocks import Block
 from coretc.status import BlockStatus
 from coretc.utils.generic import data_hexdigest, data_hexundigest, is_valid_digit
 
 from .peers import Peer, PeerStatus
-from .rpcutils import make_rpc_request
+from .rpcutils import make_rpc_request_raw
 
 logger = logging.getLogger('chain-rpc-client')
 
@@ -19,6 +19,51 @@ class RPCClient:
     def use_peer(self, peer: Peer):
         self.selected_peer = peer
     
+    def send_request(self, endpoint: str, 
+                     json_data: dict | None = None,
+                     method: Literal['GET', 'POST'] = 'POST',
+                     peer: Peer | None = None,
+                     update_peer: bool = True,
+                     log_error: bool = True) -> Tuple[dict, bool]:
+        
+        '''
+        Make a request to the selected peer (or one given manually) at a specific endpoint
+
+        Args:
+            endpoint (str): RPC Endpoint to hit, ex: /height
+            json_data (dict | None): JSON Data to send, None for no data, (DEFAULT=None)
+            method (Literal['GET', 'POST']): Request method (DEFAULT=POST)
+            peer (Peer): Alternate peer to use instead of the selected one (DEFAULT=None)
+            update_peer (bool): Whether the last_seen of the peer will be updated (DEFAULT=True)
+            log_error (bool): Whether an error will be logged if encountered (DEFAULT=True)
+
+        Returns:
+            dict: Resulting JSON rpc data
+            bool: Whether a request error occured
+        '''
+        
+        peer = peer or self.selected_peer
+
+        if peer is None:
+            logger.critical('Cannot send a request when no peer is selected')
+            return ({}, True)
+        
+        response_json, err = make_rpc_request_raw(
+            peer.form_url(endpoint),
+            json_data = json_data,
+            method = method
+        )
+        
+        if err:
+            if log_error:
+                logger.error(f'Request error sending RPC request: {response_json["error"]}')
+
+            return (response_json, True)
+        
+        if update_peer:
+            peer.last_seen = int(time.time()) 
+
+        return (response_json, False)
 
     def get_tophash(self, peer: Peer | None = None) -> bytes | None:
         '''
@@ -26,20 +71,21 @@ class RPCClient:
 
         Args:
             peer (Peer | None): Default is none. If none, the selected peer is used
+        
         Returns:
             bytes | None: Either the tophash in byte form or None
         '''
-        peer = peer or self.selected_peer
-        
-        if peer is None:
-            logger.critical('Cannot get the tophash when no peer is specified')
-            return None
 
-        response_json = make_rpc_request(
-            peer.form_url('/tophash'),
-            json_data = None,
-            method = 'GET'
+        response_json, err = self.send_request(
+            endpoint = '/tophash',
+            method = 'GET',
+            peer = peer
         )
+         
+        if err: return None
+
+        peer = peer or self.selected_peer
+        if peer is None: return None
 
         if 'error' in response_json:
             logger.error(f'Error getting top hash from peer {peer.hoststr()}: {str(response_json["error"])}')
@@ -65,11 +111,14 @@ class RPCClient:
             logger.critical('Cannot check for existance of top hash if no peer is specified')
             return True
     
-        response_json = make_rpc_request(
-            peer.form_url('/tophashexists'),
+        response_json, err = self.send_request(
+            endpoint = '/tophashexists',
             json_data = {'hash': data_hexdigest(hash_bytes)},
-            method = 'POST'
+            method = 'POST',
+            peer = peer
         )
+        
+        if err: return True
 
         if 'error' in response_json:
             logger.error(f'Error checking tophash existance from peer {peer.hoststr()}: {str(response_json)}')
@@ -100,11 +149,14 @@ class RPCClient:
             logger.critical('Cannot get the top difficulty when no peer is specified')
             return None
 
-        response_json = make_rpc_request(
-            peer.form_url('/topdifficulty'),
+        response_json, err = self.send_request(
+            endpoint = '/topdifficulty',
             json_data = None,
-            method = 'GET'
+            method = 'GET',
+            peer = peer
         )
+
+
 
         if 'error' in response_json:
             logger.error(f'Error getting top difficulty from peer {peer.hoststr()}: {str(response_json["error"])}')
@@ -140,12 +192,15 @@ class RPCClient:
             logger.critical('Cannot get height from unspecified peer')
             return -1
 
-        response_json = make_rpc_request(
-            peer.form_url('/height'),
+        response_json, err = self.send_request(
+            endpoint = '/height',
             json_data = None,
-            method = 'POST'
+            method = 'POST',
+            peer = peer
         )
         
+        if err: return -1
+
         if 'error' in response_json:
             logger.error(f'Error getting height from {peer.hoststr()}: {response_json["error"]}')
 
@@ -176,12 +231,15 @@ class RPCClient:
             logger.critical('Cannot get the tophash when no peer is specified')
             return BlockStatus.INVALID_ERROR
 
-        response_json = make_rpc_request(
-            peer.form_url('/submitblock'),
+        response_json, err = self.send_request(
+            endpoint = '/submitblock',
             json_data = block.to_json(),
-            method = 'POST'
+            method = 'POST',
+            peer = peer
         ) 
-        
+       
+        if err: return BlockStatus.INVALID_ERROR
+
         if 'error' in response_json:
             logger.error(f'Error accessing {peer.hoststr()}: {response_json["error"]}')
 
@@ -229,11 +287,14 @@ class RPCClient:
             logger.critical('Cannot get peer information when no peer is specified')
             return result
         
-        response_json = make_rpc_request(
-            peer.form_url('/peers'), 
+        response_json, err = self.send_request(
+            endpoint = '/peers', 
             json_data = None,
-            method = 'GET'
+            method = 'GET',
+            peer = peer
         )
+        
+        if err: return result
 
         if 'error' in response_json:
             logger.error(f'Error getting peer list of {peer.hoststr()}: {response_json["error"]}')
@@ -278,11 +339,14 @@ class RPCClient:
             logger.critical('Cannot establish connection with an unspecified peer')
             return False
 
-        response_json = make_rpc_request(
-            peer.form_url('/hellopeer'),
+        response_json, err = self.send_request(
+            endpoint = '/hellopeer',
             json_data = node_info,
-            method = 'POST'
+            method = 'POST',
+            peer = peer
         )
+        
+        if err: return False
 
         if 'error' in response_json:
             logger.error(f'Error sending hello to {peer.hoststr()}: {response_json}')
@@ -316,13 +380,15 @@ class RPCClient:
         
         peer.status = PeerStatus.OFFLINE
 
-        response_json = make_rpc_request(
+        response_json, err = make_rpc_request_raw(
             peer.form_url('/ping'),
             json_data = None,
             method = 'POST'
         )
         
-        if 'error' in response_json:
+        #print(response_json)
+
+        if 'error' in response_json or err:
             return False
 
         if 'msg' not in response_json and 'stamp' not in response_json:
@@ -334,6 +400,7 @@ class RPCClient:
         if str(response_json['msg']) != 'pong': return False
 
         peer.status = PeerStatus.ONLINE
+        peer.last_seen = int(time.time())
 
         return True
 

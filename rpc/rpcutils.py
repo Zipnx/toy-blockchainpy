@@ -3,7 +3,7 @@ import logging
 import requests
 
 from enum import IntEnum
-from typing import Literal
+from typing import Literal, Tuple
 
 from coretc.utils.valid_data import valid_host, valid_port, valid_version
 
@@ -22,8 +22,7 @@ class PeerStatus(IntEnum):
     LIMITED = 2
     BANNED  = 3
 
-
-def make_rpc_request(url: str, json_data: dict | None = None, method: Literal['POST', 'GET'] = 'POST') -> dict:
+def make_rpc_request_raw(url: str, json_data: dict | None = None, method: Literal['POST', 'GET'] = 'POST') -> Tuple[dict, bool]:
     '''
     Make an RPC request to a Peer and return any returned JSON data
 
@@ -38,16 +37,16 @@ def make_rpc_request(url: str, json_data: dict | None = None, method: Literal['P
     try:
         r = requests.request(method, url, json = json_data)
     except requests.exceptions.ConnectionError:
-        return {'error': f'Unable to connect to {url}'}
+        return ({'error': f'Unable to connect to {url}'}, True)
     except BaseException as e:
         logger.error(f'Exception when attempting to access {url}: {str(e)}')
-        return {'error': f'Exception while accessing {url}: {str(e)}'}
+        return ({'error': f'Exception while accessing {url}: {str(e)}'}, True)
     
     if r.status_code != 200:
         logger.warn(f'Got status code: {r.status_code}, when accessing {url}')
-        return {'error': f'Invalid status code accessing {url}: {r.status_code}'}
+        return ({'error': f'Invalid status code accessing {url}: {r.status_code}'}, True)
 
-    return r.json()
+    return r.json(), False
 
 PEER_JSON_SCHEMA = {
     'type': 'object',
