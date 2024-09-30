@@ -58,7 +58,7 @@ def create_example_tx() -> TX:
 
 # this bug was absolute dogshit i though i broke the core somehow, fuck this goddamn existance
 def create_example_utxo(is_input: bool = False) -> UTXO:
-    return UTXO(b'A'*91, 0.5, 0, b'i'*32 if is_input else b'', b'I am in pain' if is_input else b'')
+    return UTXO(b'A'*91, 0.5, 0, b'i'*32 if is_input else b'', b'\x41'*64 if is_input else b'')
     
 
 def forktree_from_json(structure: list, node: ForkBlock | None = None) -> ForkBlock:

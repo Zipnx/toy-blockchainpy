@@ -6,6 +6,7 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 from dataclasses import dataclass
 
+from coretc.object_schemas import UTXO_IN_JSON_SCHEMA, UTXO_OUT_JSON_SCHEMA, is_schema_valid
 from coretc.utils.generic import data_hexdigest, data_hexundigest, dump_json
 from coretc.crypto import data_sign, data_verify
 from Crypto.PublicKey import ECC
@@ -92,6 +93,20 @@ class UTXO:
         return json_data
     
     @staticmethod
+    def valid_input_json(json_data: dict) -> bool:
+        '''
+        Whether a JSON object of a utxo input is valid
+        '''
+        return is_schema_valid(json_data, UTXO_IN_JSON_SCHEMA)
+
+    @staticmethod
+    def valid_output_json(json_data: dict) -> bool:
+        '''
+        Whether a JSON object of a utxo output is valid
+        '''
+        return is_schema_valid(json_data, UTXO_OUT_JSON_SCHEMA)
+
+    @staticmethod
     def from_json(json_data: dict) -> Optional['UTXO']:
         '''
         Parse JSON representation of a UTXO into an object
@@ -103,14 +118,12 @@ class UTXO:
             UTXO: Resulting object
         '''
 
-        is_input = 'unlock-sig' in json_data
+        is_input = 'unlock-sig' in json_data and 'txid' in json_data
         
-        if is_input and 'txid' not in json_data: return None
-
-        req_fields = ['pk', 'amount', 'index'] # Owner is just for visualization not actually necessary
-
-        for f in req_fields:
-            if f not in json_data.keys(): return None
+        if is_input:
+            if not UTXO.valid_input_json(json_data): return None
+        else:
+            if not UTXO.valid_output_json(json_data): return None
 
         return UTXO(
             owner_pk    = unhexlify(json_data['pk']),

@@ -26,7 +26,7 @@ def sample_block(bc: Chain, prev: bytes = b'') -> Block:
 
 def main():
 
-    chain = Chain(ChainSettings())
+    chain = Chain(ChainSettings(debug_dont_save = True))
 
     a = Wallet.generate()
     b = Wallet.generate()
@@ -50,6 +50,8 @@ def main():
     
     a_send = a.create_transaction_single(b.get_pk_bytes(), 0.69)
     b_reward = b.create_reward_transaction(chain.get_top_blockreward())
+    
+    print(len(a_send.inputs[0].signature))
 
     #print(json.dumps(a_send.to_json(), indent = 4))
     

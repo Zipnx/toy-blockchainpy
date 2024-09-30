@@ -48,16 +48,29 @@ class TestJsonConversion(unittest.TestCase):
                              "TX and it's copy don't have the same transaction ID")
     def test_simple_utxo_json(self) -> None:
 
-        utxo: UTXO = create_example_utxo()
-        utxo_json = utxo.to_json()
+        utxo: UTXO = create_example_utxo(is_input = False)
+        utxo_json = utxo.to_json(is_input = False)
 
         utxo_copy: UTXO | None = UTXO.from_json(utxo_json)
 
-        self.assertFalse(utxo_copy is None, "Error deserializing JSON to UTXO object")
+        self.assertIsNotNone(utxo_copy, "Error deserializing JSON to UTXO output object")
 
         if utxo_copy is not None:
             self.assertEqual(utxo.hash_sha256(), utxo_copy.hash_sha256(),
-                             "UTXO and it's copy don't have the same hash")
+                             "UTXO output and it's copy don't have the same hash")
+
+        # Same for inputs
+
+        utxo: UTXO = create_example_utxo(is_input = True)
+        utxo_json = utxo.to_json(is_input = True)
+
+        utxo_copy: UTXO | None = UTXO.from_json(utxo_json)
+
+        self.assertIsNotNone(utxo_copy, 'Error deserializing JSON to UTXO input object')
+
+        if utxo_copy is not None:
+            self.assertEqual(utxo.hash_sha256(), utxo_copy.hash_sha256(),
+                             'UTXO input and it\'s copy don\'t have the same hash')
 
     def test_tx_with_utxos(self) -> None:
         

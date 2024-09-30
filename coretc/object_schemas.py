@@ -7,7 +7,9 @@ from jsonschema import validate, ValidationError
 #  REGEX
 #
 HASH_HEXLIFY_REGEX = '^(?:0x)?[0-9a-fA-F]{64}+$'
-HEXSTRING_REGEX = '^(?:0x)?[0-9a-fA-F]{1,512}+$'
+SIG_HEXLIFY_REGEX  = '^(?:0x)?[0-9a-fA-F]{128}+$'
+DER_HEXLIFY_REGEX  = '^(?:0x)?[0-9a-fA-F]{182}+$'
+HEXSTRING512_REGEX = '^(?:0x)?[0-9a-fA-F]{1,512}+$'
 
 
 #
@@ -18,12 +20,12 @@ UTXO_OUT_JSON_SCHEMA = {
     'type': 'object',
     'properties': {
         
-        'owner': {'type': 'string'},
+        'owner': {'type': 'string', 'pattern': HASH_HEXLIFY_REGEX},
         'amount': {'type': 'number', 'format': 'float'},
         'index': {'type': 'number', 'minimum': 0, 'maximum': 255},
-        'pk': {'type': 'string'},
+        'pk': {'type': 'string', 'pattern': DER_HEXLIFY_REGEX},
     },
-    'required': ['owner', 'amount', 'index', 'pk']
+    'required': ['amount', 'index', 'pk']
 }
 
 UTXO_IN_JSON_SCHEMA = {
@@ -32,8 +34,8 @@ UTXO_IN_JSON_SCHEMA = {
         {
             'type': 'object',
             'properties': {
-                'unlock-sig': {'type': 'string'},
-                'txid': {'type': 'string'}
+                'unlock-sig': {'type': 'string', 'pattern': SIG_HEXLIFY_REGEX},
+                'txid': {'type': 'string', 'pattern': HASH_HEXLIFY_REGEX}
             }
         }
     ]
@@ -71,7 +73,7 @@ BLOCK_JSON_SCHEMA = {
         'hash': {'type': 'string', 'pattern': HASH_HEXLIFY_REGEX},
         'timestamp': {'type': 'integer', 'minimum': 0},
         'difficulty': {'type': 'integer', 'minimum': 0},
-        'nonce': {'type': 'string', 'pattern': HEXSTRING_REGEX},
+        'nonce': {'type': 'string', 'pattern': HEXSTRING512_REGEX},
 
         'txs': {
             'type': 'array',

@@ -116,9 +116,7 @@ class TX:
             bool: Whether its valid or not
         '''
 
-        if not is_schema_valid(json_data, TX_JSON_SCHEMA): return False
-
-        return True
+        return is_schema_valid(json_data, TX_JSON_SCHEMA)
 
     @staticmethod
     def from_json(json_data: dict) -> Optional['TX']:
