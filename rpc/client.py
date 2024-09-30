@@ -356,40 +356,7 @@ class RPCClient:
                 result[f].append(peer_obj)
 
         return result
-    
-    '''
-    def peer_establish(self, node_info: dict, peer: Peer | None) -> bool:
-
-        peer = peer or self.selected_peer
-
-        if peer is None:
-            logger.critical('Cannot establish connection with an unspecified peer')
-            return False
-
-        response_json, err = self.send_request(
-            endpoint = '/hellopeer',
-            json_data = node_info,
-            method = 'POST',
-            peer = peer
-        )
-        
-        if err: return False
-
-        if 'error' in response_json:
-            logger.error(f'Error sending hello to {peer.hoststr()}: {response_json}')
-            return False
-
-        if 'status' not in response_json:
-            logger.error(f'Peer {peer.hoststr()} sent invalid hello response')
-            return False
-
-        if not isinstance(response_json['status'], bool):
-            logger.error(f'Peer {peer.hoststr()} sent invalid hello response type')
-            return False
-
-        return response_json['status']
-    '''
-
+     
     def ping(self, peer: Peer | None = None) -> bool:
         '''
         Peer the currently selected Peer, or one specified

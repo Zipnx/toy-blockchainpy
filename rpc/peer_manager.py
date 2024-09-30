@@ -121,6 +121,7 @@ class PeerManager:
         '''
         Add a peer to the peer_inuse list. Will return false if the peer 
         exists already in it or if adding it exceeds the max peers in use setting
+        *** NO PEER VALIDATION HAPPENS HERE ***
         
         Returns:
             bool: Whether the addition went through
@@ -214,7 +215,7 @@ class PeerManager:
                 'success': {'type': 'boolean'},
                 'info': NODE_INFO_EXT_SCHEMA,
             },
-            'required': ['success', 'info']
+            'required': ['success']
         }):
             logger.warn(f'Peer {peer.hoststr()} send invalid establishment response')
             
@@ -223,6 +224,9 @@ class PeerManager:
             return False
         
         if not response_json['success']: return False
+        
+        if not 'info' in response_json:
+            return False
 
         peer.last_seen = int(time())
         peer.last_height = response_json['info']['height']
@@ -231,7 +235,15 @@ class PeerManager:
         # TODO: Possibly use the peer's own peers
 
         return True
+    
+    def is_use_limit_reached(self) -> bool:
+        '''
+        Whether the maximum set peers are being used already
 
+        Returns:
+            bool: You get the picture
+        '''
+        return len(self.peers_inuse) >= self.max_peers_used
 
     def prune_junk_peers(self) -> int:
         '''

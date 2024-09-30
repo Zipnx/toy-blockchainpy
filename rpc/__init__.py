@@ -40,83 +40,29 @@ class RPC:
 
         self.peer_manager.load_peers()
         self.peer_manager.pick_peers_used(self.get_info_ext())
-
-    '''
-    def load_peers(self) -> bool:
-        logger.debug('Loading peer information')
-
-        peer_json = load_json_from_file(self.settings.node_directory + '/peers.json',
-                                        verbose = True)
-
-        if peer_json is None:
-            logger.critical('Unable to load peers.')
-            return False
-
-        # Check if the JSON structure is valid
-
-        if not isinstance(peer_json, list):
-            logger.error('Peer info is not a list?')
-            return False
-
-        
-
-        for peer_entry in peer_json:
-            if 'host' not in peer_entry or 'port' not in peer_entry:
-                logger.error('Invalid peer JSON format')
-                return False
-            
-            host = peer_entry['host']
-            port = peer_entry['port']
-
-            if not valid_host(host) and valid_port(port):
-                logger.error('Peer has invalid data')
-                return False
-
-            peerobj = Peer(host = peer_entry['host'], port = peer_entry['port'])
-             
-            # Check if it's a duplicate
-            if peerobj in self.peers:
-                logger.warn('Duplicate peer found in peers.json file!')
-                continue
-
-            # TODO: Check that the peer is not the current node,
-            #       Need to check if it's an internal IP too
-
-
-            self.peers.append(peerobj)
-
-        return True
-    
-    def select_peers(self) -> int:
-        
-        self.peers_in_use.clear()
-        
-        # This might be inefficient if a lot of peers are in the known list but it's a problem
-        # ill fix some other time. I find it better to know the status of all known peers
-        for peer in self.peers:
-            if self.rpc_client.ping(peer):
-                
-                if len(self.peers_in_use) < self.settings.max_connections:
-                    self.peers_in_use.append(peer)
-        
-        peer_count = len(self.peers_in_use)
-
-        if peer_count == 0:
-            logger.warn('No online peers found!')
-        else:
-            logger.debug(f'Interacting with {peer_count} other peers')
-
-        return len(self.peers_in_use)
-    '''
-
+ 
     def handle_hello(self, host_ip: str, ext_peer_info: dict) -> dict:
         '''
         Handle a hello request and if valid add the peer to the current peers
+        *** THE NODE INFO IS NOT VALIDATED HERE ***
+
+        Args:
+            host_ip (str): IP (or dns im dumb) of foreign peer
+            ext_peer_info (dict): The other peer's extended node info
+
+        Returns:
+            dict: RPC Response
         '''
 
         with self.lock:
 
             # TODO: Also validate the network type
+            
+            if self.peer_manager.is_use_limit_reached():
+                return {
+                    'info': {},
+                    'success': False
+                }
 
             new_peer = Peer(
                 net = NetworkType(ext_peer_info['net']),
