@@ -103,7 +103,7 @@ class RPCClient:
 
         return tophash
     
-    def check_tophash_exists(self, hash_bytes: bytes, peer: Peer | None) -> bool:
+    def check_tophash_exists(self, hash_bytes: bytes, peer: Peer | None = None) -> bool:
 
         peer = peer or self.selected_peer
         
@@ -195,7 +195,7 @@ class RPCClient:
         response_json, err = self.send_request(
             endpoint = '/height',
             json_data = None,
-            method = 'POST',
+            method = 'GET',
             peer = peer
         )
         
@@ -210,6 +210,41 @@ class RPCClient:
 
         if not is_valid_digit(response_json['height']):
             logger.error(f'Height req to {peer.hoststr()} returned NaN')
+            return -1
+
+        return int(response_json['height'])
+    
+    def get_estab_height(self, peer: Peer | None = None) -> int:
+        '''
+        Get the established height of a peer node
+
+        Returns:
+            int: The height, <0 on error
+        '''
+        peer = peer or self.selected_peer
+
+        if peer is None:
+            logger.critical('A peer must be selected to get the estab height')
+            return -1
+
+        response_json, err = self.send_request(
+            endpoint    = '/estabheight',
+            method      = 'GET',
+            peer        = peer
+        )
+
+        if err: return -1
+        
+        if 'error' in response_json:
+            logger.error(f'Established height req to {peer.hoststr()} returned error: {response_json["error"]}')
+            return -1
+
+        if 'height' not in response_json:
+            logger.error(f'Established height req to {peer.hoststr()} returned invalid response')
+            return -1
+
+        if not is_valid_digit(response_json['height']):
+            logger.error(f'Established height req to {peer.hoststr()} returned NaN')
             return -1
 
         return int(response_json['height'])
@@ -362,7 +397,7 @@ class RPCClient:
 
         return response_json['status']
 
-    def ping(self, peer: Peer | None) -> bool:
+    def ping(self, peer: Peer | None = None) -> bool:
         '''
         Peer the currently selected Peer, or one specified
 

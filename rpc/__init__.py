@@ -354,9 +354,9 @@ class RPC:
                 'banned': [],
                 'used': []
             }
-            
+            print(len(list(self.peer_manager.get_peers_known()))) 
             for peer in self.peer_manager.get_peers_known():
-
+                print(peer)
                 peer_json = peer.to_json()
 
                 match peer.status:

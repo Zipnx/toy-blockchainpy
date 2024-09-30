@@ -161,7 +161,7 @@ class PeerManager:
             Iterable[Peer]: Peers known by the peer manager
         '''
 
-        for peer in self.peers_inuse:
+        for peer in self.known_peers:
             yield peer
         
         

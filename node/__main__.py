@@ -64,6 +64,17 @@ def get_current_height():
         'height': rpc.get_chain_height()
     }) 
 
+@app.route('/estabheight')
+def get_established_height():
+    '''
+    Returns the node's established height
+    * Meaning, blocks that have been confirmed in the network and are not in a fork
+    '''
+    return jsonify({
+        'height': rpc.chain.get_established_height()
+    })
+
+
 @app.route('/tophash')
 def tophash():
     '''
