@@ -1,10 +1,16 @@
 
+from time import time
 from typing import Iterable, List
 
+from coretc.utils.generic import is_valid_digit
 from coretc.utils.valid_data import valid_file
+from coretc.object_schemas import is_schema_valid
+
 from rpc.client import RPCClient
 from rpc.peers import Peer, PeerStatus
 import logging, json
+
+from rpc.rpcutils import NODE_INFO_EXT_SCHEMA
 
 
 logger = logging.getLogger('peer-manager')
@@ -77,12 +83,13 @@ class PeerManager:
 
         return True
 
-    def pick_peers_used(self, max_peers_override: int | None = None) -> int:
+    def pick_peers_used(self, ext_node_info: dict, max_peers_override: int | None = None) -> int:
         '''
         Pick (or re-pick) peers to actively use
         
         Args:
             max_peers_override (int | None): Used to override the peer manager's max peers in use
+            ext_node_info (dict): Node's extended info to send to the foreign peer
 
         Returns:
             int: Total peers selected.
@@ -97,7 +104,7 @@ class PeerManager:
         peer_use_count: int = 0
 
         for peer in self.known_peers:
-            if self.rpc_client.ping(peer):
+            if self.establish_peer(peer, ext_node_info):
 
                 if len(self.peers_inuse) < (self.max_peers_used if max_peers_override is None else max_peers_override):
                     self.peers_inuse.append(peer)
@@ -163,5 +170,79 @@ class PeerManager:
 
         for peer in self.known_peers:
             yield peer
+
+    def establish_peer(self, peer: Peer, node_info: dict) -> bool:
+        '''
+        Establish a relation with a foreign peer if one does not already exist
+
+        Args:
+            peer (Peer): Peer to send a hello to
+            node_info (dict): Info that will be sent to the foreign node to accept us
+        
+        Returns:
+            bool: Whether this peer now knows our node, and we can send over stuff
+        '''
+        
+        # If the peer is not in the known list for some reason, it will be added
+        if peer not in self.known_peers:
+            self.known_peers.append(peer)
+
+        if peer in self.peers_inuse:
+            # We will go through the setup again
+            self.peers_inuse.remove(peer)
+        
+        # Send the hello
+
+        response_json, err = self.rpc_client.send_request(
+            endpoint    = '/hellopeer',
+            json_data   = node_info,
+            method      = 'POST',
+            peer        = peer,
+            log_error   = False
+        )
+
+        # In the response will be the foreign peer's info
+        if err: return False
+
+        if 'error' in response_json:
+            logger.warn(f'Peer {peer.hoststr()} returned error on establishing: {response_json}')
+            return False
+
+        if not is_schema_valid(response_json, {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'info': NODE_INFO_EXT_SCHEMA,
+            },
+            'required': ['success', 'info']
+        }):
+            logger.warn(f'Peer {peer.hoststr()} send invalid establishment response')
+            
+            print(response_json)
+
+            return False
+        
+        if not response_json['success']: return False
+
+        peer.last_seen = int(time())
+        peer.last_height = response_json['info']['height']
+        
+        # TODO: Make sure the network type is correct, and the chain is compatible, also the versions
+        # TODO: Possibly use the peer's own peers
+
+        return True
+
+
+    def prune_junk_peers(self) -> int:
+        '''
+        Clear out foreign known peers who have not been seen in a while
+        (or other stuff, idk yet, thats why its unimplemented)
+
+        Return:
+            int: Number of peers pruned off
+        '''
+
+        logger.critical('UNIMPLEMENTED')
+        return -1
         
         

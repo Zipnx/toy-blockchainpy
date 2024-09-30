@@ -1,6 +1,6 @@
 
 import json
-from typing import Optional, Self
+from typing import Iterable, List, Optional, Self
 from dataclasses import dataclass
 from enum import IntEnum
 
@@ -101,3 +101,15 @@ class Peer:
 
     def __eq__(self, other) -> bool:
         return (self.host, self.port) == (other.host, other.port)
+
+def get_peer_list_json(peers: List[Peer] | Iterable[Peer]) -> List[dict]:
+    '''
+    Get a list of JSON objects, from a list of peers
+
+    Args:
+        peers (List[Peer] | Iterable[Peer]): List of peers to use
+
+    Returns:
+        List[dict]: Resulting list of json objects
+    '''
+    return [peer.to_json() for peer in peers]

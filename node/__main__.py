@@ -1,10 +1,13 @@
 
 import os,sys,argparse, time
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from coretc.object_schemas import is_schema_valid
 from coretc.utils.generic import data_hexdigest, data_hexundigest, is_valid_digit
 from rpc import RPC
 from rpc.settings import RPCSettings, load_config
+from rpc.rpcutils import NODE_INFO_EXT_SCHEMA
 
 import logging
 from flask import Flask, Response, json, jsonify, request
@@ -257,7 +260,16 @@ def peer_init():
     
     # TODO: Will remain unimplemented until i make the peer manager cause this is turning
     #       into a rats nest
-    return error_response('Unimplemented')
+
+    req_data = request.get_json()
+
+    if not is_schema_valid(req_data, NODE_INFO_EXT_SCHEMA):
+        return error_response('Invalid NODE_INFO_EXT_SCHEMA')
+    
+    if request.remote_addr is None:
+        return error_response('Invalid, unable to get host')
+
+    return rpc.handle_hello(request.remote_addr, req_data)
 
 @app.route('/ping', methods = ['POST'])
 def pong():

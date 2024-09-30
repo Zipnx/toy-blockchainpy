@@ -7,6 +7,7 @@ from typing import Literal, Tuple
 
 from coretc.utils.valid_data import valid_host, valid_port, valid_version
 
+from dataclasses import dataclass
 from jsonschema import ValidationError
 from jsonschema import validate as validate_schema
 
@@ -48,20 +49,26 @@ def make_rpc_request_raw(url: str, json_data: dict | None = None, method: Litera
 
     return r.json(), False
 
+NET_TYPE_LST = list(NetworkType)
+PEER_STATUS_LIST = list(PeerStatus)
+
 PEER_JSON_SCHEMA = {
     'type': 'object',
     'properties': {
         
-        'net': {'type': 'number'},
-        'version_rpc': {'type': 'string'},
+        'net': {'type': 'number', 
+                'minimum': int(min(NET_TYPE_LST)), 'maximum': int(max(NET_TYPE_LST))},
+
+        'version_rpc': {'type': 'string'}, # TODO: Add network format tests 
         'version_core': {'type': 'string'},
 
         'host': {'type': 'string'},
-        'port': {'type': 'integer'},
+        'port': {'type': 'integer', 'minimum': 0, 'maximum': 65535},
 
-        'last_height': {'type': 'integer'},
-        'last_seen': {'type': 'integer'},
-        'last_status': {'type': 'number'},
+        'last_height': {'type': 'integer', 'minimum': -1},
+        'last_seen': {'type': 'integer', 'minimum': -1},
+        'last_status': {'type': 'number',
+                        'minimum': int(min(PEER_STATUS_LIST)), 'maximum': int(max(PEER_STATUS_LIST))},
         
         'ssl_enabled': {'type': 'boolean'}
 
@@ -71,6 +78,59 @@ PEER_JSON_SCHEMA = {
         'host', 'port',
         'last_height', 'last_seen', 'last_status',
         'ssl_enabled'
+    ]
+}
+
+NODE_INFO_SHEMA = {
+    'type': 'object',
+    'properties': {
+        
+        'net': {'type': 'number'},
+        'ssl': {'type': 'boolean'},
+        'version_rpc': {'type': 'string'},
+        'version_core': {'type': 'string'},
+        'height': {'type': 'integer', 'minimum': 0},
+        'peercount': {'type': 'integer', 'minimum': 0},
+        'timestamp': {'type': 'integer', 'minimum': 0}
+    },
+    'required': [
+        'net', 'ssl',
+        'version_rpc', 'version_core',
+        'height',
+        'peercount',
+        'timestamp'
+    ]
+}
+
+NODE_INFO_EXT_SCHEMA = {
+    
+    'allOf': [
+
+        NODE_INFO_SHEMA,
+        {
+            'type': 'object',
+            'properties': {
+        
+                'port': {'type': 'integer'},
+
+                'estabheight': {'type': 'integer', 'minimum': 0},
+                'tophash': {'type': 'string'}, # TODO: Add the hash hexlify pattern check here
+                'peers': {
+                    'type': 'array',
+                    'items': PEER_JSON_SCHEMA
+                },
+                'peers_used': {
+                    'type': 'array',
+                    'items': PEER_JSON_SCHEMA
+                }
+            },
+            'required': [
+                'port',
+                'estabheight',
+                'tophash',
+                'peers', 'peers_used'
+            ]
+        }
     ]
 }
 

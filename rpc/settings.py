@@ -21,6 +21,8 @@ class RPCSettings:
     admin_username: str = 'admin'
     admin_passhash: str | None = None
     
+    ssl_enabled: bool = False
+
     # TODO: Set these in the config wiz & file
     max_connections: int = 16
 

@@ -1,5 +1,8 @@
 
 from jsonschema import validate, ValidationError
+import logging
+
+logger = logging.getLogger('schema-validation')
 
 # TODO: Do additional format checking for the hex strings, version format, etc...
 
@@ -85,7 +88,7 @@ BLOCK_JSON_SCHEMA = {
     'required': ['version', 'prev', 'hash', 'timestamp', 'difficulty', 'nonce', 'txs']
 }
 
-def is_schema_valid(json_data: dict, schema: dict) -> bool:
+def is_schema_valid(json_data: dict, schema: dict, display_error: bool = False) -> bool:
     '''
     Verify the schema of a given JSON object
     *** There is no context why the check failed here ***
@@ -93,6 +96,7 @@ def is_schema_valid(json_data: dict, schema: dict) -> bool:
     Args:
         json_data (dict): JSON Object to check
         schema (dict): Schema to verify on the JSON obj
+        display_error (bool): Whether to display the validation error
 
     Returns:
         bool: Validity of JSON object
@@ -104,4 +108,6 @@ def is_schema_valid(json_data: dict, schema: dict) -> bool:
         return True
     except ValidationError as e:
         #print('\n================================\n', e, '\n============================\n')
+        if display_error:
+            logger.error('JSON Schema validation failed:', exc_info = e)
         return False

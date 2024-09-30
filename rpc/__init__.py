@@ -12,7 +12,8 @@ from threading import Lock
 from rpc.client import RPCClient
 
 from rpc.peer_manager import PeerManager
-from rpc.peers import Peer, PeerStatus
+from rpc.peers import Peer, PeerStatus, get_peer_list_json
+from rpc.rpcutils import NetworkType
 from rpc.settings import RPCSettings
 
 logger = logging.getLogger('chain-rpc')
@@ -38,7 +39,7 @@ class RPC:
         )
 
         self.peer_manager.load_peers()
-        self.peer_manager.pick_peers_used()
+        self.peer_manager.pick_peers_used(self.get_info_ext())
 
     '''
     def load_peers(self) -> bool:
@@ -108,52 +109,47 @@ class RPC:
         return len(self.peers_in_use)
     '''
 
-    def _send_hello(self, peer: Peer) -> bool:
-        '''
-        Used internally to establish connection with other rpc servers
-
-        Args:
-            peer (Peer): Foreign peer to send hello to
-
-        Returns:
-            bool: Whether the request went through (status unconfirmed)
-        '''
-        
-        node_info = {
-            # TODO: Also check the version (rpc & core) 
-            'height': self.chain.get_height(),
-            'tophash': self.chain.get_tophash(),
-            'port': self.settings.port,
-            'network': 'unimplemented', # TODO
-            'peers': self.get_peers_json()
-        }
-
-        return self.rpc_client.peer_establish(node_info, peer)
-    
-    def handle_hello(self, host_ip: str, peer_info: dict) -> dict:
+    def handle_hello(self, host_ip: str, ext_peer_info: dict) -> dict:
         '''
         Handle a hello request and if valid add the peer to the current peers
         '''
 
         with self.lock:
 
-            peer_use_count = len(self.peer_manager.peers_inuse)
-            # TODO: Validate with jsonschema, for now we assume its valid i dont care
             # TODO: Also validate the network type
-        
-            new_peer = Peer(host = host_ip, port = peer_info['port'], status = PeerStatus.ONLINE)
-        
-            # TODO: Challenge the peer
+
+            new_peer = Peer(
+                net = NetworkType(ext_peer_info['net']),
+                
+                rpc_version = ext_peer_info['version_rpc'],
+                core_version = ext_peer_info['version_core'],
+
+                host = host_ip,
+                port = ext_peer_info['port'],
+                last_seen = int(time.time()),
+                last_height = ext_peer_info['height'],
+                status = PeerStatus.ONLINE,
+                ssl_enabled = ext_peer_info['ssl']
+            )
+
+            # TODO: Challenge the peer, make sure the chains are compatible, net, versions, etc
             # TODO: If the height is higher than this nodes, check for sync
-        
+
+            # Does not work when the peer boots, will fix later
+            #if not self.rpc_client.ping(new_peer):
+            #    return {'error': 'Did not respond to ping'}
+
             self.peer_manager.add_peer_to_use(new_peer)
         
             logger.debug(f'New peer found: {new_peer.hoststr()}')
 
 
-            logger.debug(f'Interacting with {peer_use_count} other peers')
+            logger.debug(f'Interacting with {len(self.peer_manager.peers_inuse)} other peers')
 
-            return {}
+            return {
+                'info': self.get_info_ext(), 
+                'success': True
+            }
 
     def sync_height(self) -> int:
         '''
@@ -322,11 +318,28 @@ class RPC:
 
     def get_info(self) -> dict:
         return {
-            'version': self.VERSION,
-            'status': True, # TODO: Change this later to be dynamic
+            'net': NetworkType.MAINNET,  # Change later in the node setup
+            'ssl': self.settings.ssl_enabled,
+            'version_rpc': self.VERSION,
+            'version_core': '1.2.3', # TODO: This is all wrong, needs to be of type int
+            'height': self.chain.get_height(),
             'peercount': len(self.peer_manager.known_peers),
             'timestamp': int(time.time())
         }
+    
+    # Benchmark how heavy this is
+    def get_info_ext(self) -> dict:
+        node_info = self.get_info()
+
+        extended = {
+            'port': self.settings.port,
+            'estabheight': self.chain.get_established_height(),
+            'tophash': data_hexdigest(self.chain.get_tophash()),
+            'peers': get_peer_list_json(self.peer_manager.get_peers_known()),
+            'peers_used': get_peer_list_json(self.peer_manager.get_peers_used())
+        }
+
+        return {**node_info, **extended}
 
     def get_chain_height(self) -> int:
         '''

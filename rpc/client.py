@@ -357,16 +357,8 @@ class RPCClient:
 
         return result
     
+    '''
     def peer_establish(self, node_info: dict, peer: Peer | None) -> bool:
-        '''
-        Send the node information to a foreign peer to establish a connection
-
-        Args:
-            node_info (dict): Node information in JSON format
-
-        Returns:
-            bool: Whether the data was accepted.
-        '''
 
         peer = peer or self.selected_peer
 
@@ -396,6 +388,7 @@ class RPCClient:
             return False
 
         return response_json['status']
+    '''
 
     def ping(self, peer: Peer | None = None) -> bool:
         '''

@@ -19,6 +19,7 @@
 - [ ] During block propagation, send the height along the new block, incase syncing is needed
 - [ ] [BUG] Make it so a node cannot have itself as a peer 
 - [ ] [BUG] Sometimes the node rejects valid blocks (thats what past me wrote down idk)
+- [ ] [BUG] In the rpc the core version format is treated as X.Y.Z whereas it an int, whoops
 
 ## Dashboard
 
