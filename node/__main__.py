@@ -148,7 +148,8 @@ def get_blocks_bulk():
 
     if target_count <= 0:
         return error_response('Target count must be >= 1')
-
+    
+    # TODO: Add this to RPC settings
     if target_count > 256:
         return error_response('Cannot get more than 256 blocks at a time')
 

@@ -40,7 +40,9 @@ class RPC:
 
         self.peer_manager.load_peers()
         self.peer_manager.pick_peers_used(self.get_info_ext())
- 
+        
+        self.sync_height()
+
     def handle_hello(self, host_ip: str, ext_peer_info: dict) -> dict:
         '''
         Handle a hello request and if valid add the peer to the current peers
@@ -112,38 +114,69 @@ class RPC:
         peer_heights: MutableMapping[Peer, int] = {}
         
         for peer in self.peer_manager.get_peers_used():
-            peer_height = self.rpc_client.get_height(peer)
+            peer_height = self.rpc_client.get_estab_height(peer)
 
-            if peer_height > self.chain.get_height():
+            if peer_height > self.chain.get_established_height():
                 peer_heights[peer] = peer_height
         
         if len(peer_heights) == 0:
             logger.info('No need to sync. Chain up to date.')
             return self.chain.get_height()
 
-        # Need to be able to give a node our latest hash and get the number of additional blocks it has
+        # At this point we have a list of potential sync nodes, 
+        # now we gotta a) Get the heighest one and b) Check that the chains are compatible
+        # If they are not, then back to (a) we go
+        
+        sorted_comb = sorted(peer_heights.items(), key=lambda i: i[1])
+        sorted_peers = [peer for peer, height in sorted_comb][::-1]
+        
+        
+        while True:
+            selected_peer = sorted_peers.pop(0)
+            target_height = peer_heights[selected_peer]
+            next_best_height = peer_heights[sorted_peers[0]]
+
+            self.chain.set_temporary_mode(True)
+
+            # Attempt sync
+
+            # TODO: Add it to the rpc settings, same as in the get_blocks_bulk func
+            SYNC_CHUNKS = 256
+
+            while self.chain.get_height() < target_height:
+                break
+            break
+        # Disable temporary mode
+        self.chain.set_temporary_mode(False)
 
         return -1
 
-    def get_block(self, block_height: int) -> dict:
+    def get_block(self, block_height: int, use_lock: bool = True) -> dict:
         '''
         Get a block's json given the height
         
         Args:
             block_height (int): Height of the target block
+            use_lock (bool): Whether to use the RPC lock (needed to work with get_blocks)
 
         Returns:
             dict: The block's JSON data in dict form
         '''
         
-        with self.lock:
-            blk = self.chain.get_block_by_height(block_height, get_top_fork = True)
+        if use_lock:
+            self.lock.acquire()
 
-            if blk is None:
-                logger.warn('An invalid block height was requested')
-                return {'error': 'Block not found'}
+        blk = self.chain.get_block_by_height(block_height, get_top_fork = True)
 
-            return blk.to_json()
+        if blk is None:
+            logger.warning('An invalid block height was requested')
+            return {'error': 'Block not found'}
+
+
+        if use_lock:
+            self.lock.release()
+
+        return blk.to_json()
 
     def get_blocks(self, block_height: int, block_count: int) -> list:
         '''
@@ -164,7 +197,8 @@ class RPC:
             blocks: List[dict] = []
 
             for height in range(block_height, min(block_height + block_count, self.chain.get_height())):
-                blk = self.get_block(height)
+                blk = self.get_block(height, use_lock = False)
+                print('exec')
 
                 if 'error' in blk: return blk
 

@@ -101,6 +101,9 @@ class Peer:
 
     def __eq__(self, other) -> bool:
         return (self.host, self.port) == (other.host, other.port)
+    
+    def __hash__(self) -> int:
+        return hash((self.host, self.port))
 
 def get_peer_list_json(peers: List[Peer] | Iterable[Peer]) -> List[dict]:
     '''
