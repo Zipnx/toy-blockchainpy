@@ -64,6 +64,8 @@ class RPCClient:
             peer.last_seen = int(time.time()) 
 
         return (response_json, False)
+    
+    # **** TODO: Functions get_block and get_blocks ****
 
     def get_tophash(self, peer: Peer | None = None) -> bytes | None:
         '''

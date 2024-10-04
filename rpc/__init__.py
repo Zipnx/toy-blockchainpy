@@ -106,7 +106,10 @@ class RPC:
         Returns:
             int: Height synced to
         '''
-         
+        
+        return -1
+
+        self.chain.set_temporary_mode(True)
         # Gotta think about malicious nodes that send a fake height response & how to handle that
         # My idea rn is to temporarily store those blocks in a list, since they may have to be reverted
         
@@ -121,6 +124,7 @@ class RPC:
         
         if len(peer_heights) == 0:
             logger.info('No need to sync. Chain up to date.')
+            self.chain.set_temporary_mode(False)
             return self.chain.get_height()
 
         # At this point we have a list of potential sync nodes, 
@@ -128,22 +132,24 @@ class RPC:
         # If they are not, then back to (a) we go
         
         sorted_comb = sorted(peer_heights.items(), key=lambda i: i[1])
-        sorted_peers = [peer for peer, height in sorted_comb][::-1]
+        sorted_peers = [peer for peer, _ in sorted_comb][::-1]
         
         
+        start_height = self.chain.get_established_height()
+
         while True:
             selected_peer = sorted_peers.pop(0)
             target_height = peer_heights[selected_peer]
             next_best_height = peer_heights[sorted_peers[0]]
 
-            self.chain.set_temporary_mode(True)
 
             # Attempt sync
 
             # TODO: Add it to the rpc settings, same as in the get_blocks_bulk func
             SYNC_CHUNKS = 256
 
-            while self.chain.get_height() < target_height:
+            while True:
+                chunk = self.rpc_client.get_blocks_bulk()
                 break
             break
         # Disable temporary mode
@@ -198,7 +204,6 @@ class RPC:
 
             for height in range(block_height, min(block_height + block_count, self.chain.get_height())):
                 blk = self.get_block(height, use_lock = False)
-                print('exec')
 
                 if 'error' in blk: return blk
 
