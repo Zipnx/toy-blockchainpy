@@ -111,7 +111,7 @@ class PeerManager:
                     peer_use_count += 1
 
         if peer_use_count == 0:
-            logger.warn('No online peers found!')
+            logger.warning('No online peers found!')
         else:
             logger.debug(f'Interacting with {peer_use_count} other peers.')
 
@@ -206,7 +206,7 @@ class PeerManager:
         if err: return False
 
         if 'error' in response_json:
-            logger.warn(f'Peer {peer.hoststr()} returned error on establishing: {response_json}')
+            logger.warning(f'Peer {peer.hoststr()} returned error on establishing: {response_json}')
             return False
 
         if not is_schema_valid(response_json, {
@@ -217,7 +217,7 @@ class PeerManager:
             },
             'required': ['success']
         }):
-            logger.warn(f'Peer {peer.hoststr()} send invalid establishment response')
+            logger.warning(f'Peer {peer.hoststr()} send invalid establishment response')
             
             print(response_json)
 

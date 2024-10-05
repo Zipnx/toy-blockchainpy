@@ -170,7 +170,7 @@ class UTXO:
         pub = ECC.import_key(self.owner_pk)
 
         if not (res := data_verify(pub, self.get_hash_with_outputs(outputs), self.signature)):
-            logger.warn(f'Invalid sig of utxo input: {self.get_id()}')
+            logger.warning(f'Invalid sig of utxo input: {self.get_id()}')
         
             #dump_json(self.to_json())
         #print('Output count:', len(outputs))

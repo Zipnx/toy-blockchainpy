@@ -106,20 +106,22 @@ class Block:
         return True
 
     @staticmethod
-    def from_json(json_data: dict) -> Optional['Block']:
+    def from_json(json_data: dict, validate_json: bool = True) -> Optional['Block']:
         '''
         Initialize a block object from JSON
 
         Args:
             json_data (dict): JSON data representing a Block
+            validate_json (bool): Whether the JSON will be validated (DEFAULT=True)
 
         Return:
             Block: New block object
         '''
-
-        if not Block.valid_block_json(json_data): 
-            logger.error('Invalid block JSON')
-            return None
+        
+        if validate_json:
+            if not Block.valid_block_json(json_data): 
+                logger.error('Invalid block JSON')
+                return None
         
 
         tx_objects: list[TX] = []

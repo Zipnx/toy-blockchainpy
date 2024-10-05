@@ -4,6 +4,7 @@ import logging, time
 from typing import List, Literal, Tuple
 
 from coretc.blocks import Block
+from coretc.object_schemas import BLOCK_JSON_SCHEMA, is_schema_valid
 from coretc.status import BlockStatus
 from coretc.utils.generic import data_hexdigest, data_hexundigest, is_valid_digit
 
@@ -65,7 +66,106 @@ class RPCClient:
 
         return (response_json, False)
     
-    # **** TODO: Functions get_block and get_blocks ****
+    def get_block(self, height: int, peer: Peer | None = None) -> Block | None:
+        '''
+        Get a block from a peer, given a height
+
+        Args:
+            height (int): Height of block to get
+            peer: (Peer | None): Peer to use, else will use selected
+
+        Returns:
+            Block | None: The block object if successful, else none
+        '''
+
+        peer = peer or self.selected_peer
+
+        if peer is None:
+            logger.critical('Cannot get block from peer when none are selected')
+            return None
+
+        response_json, err = self.send_request(
+            endpoint = '/getblock',
+            method = 'POST',
+            json_data = {
+                'height': height 
+            },
+            peer = peer,
+        )
+
+        if err:
+            logger.error(f'Network error sending get_block request to peer {peer.hoststr()}')
+            return None
+
+        if 'error' in response_json:
+            logger.error(f"Peer {peer.hoststr()} returned error during get_block req: {response_json}")
+            return None
+
+        # Check the block schema
+        if not Block.valid_block_json(response_json):
+            logger.error(f'Peer {peer.hoststr()} send invalid block JSON for get_block req')
+            return None
+
+        blk = Block.from_json(response_json, validate_json = False) # We checked the json before 
+
+        if blk is None:
+            logger.error(f'Invalid block JSON from {peer.hoststr()}')
+
+        return blk
+    
+    def get_blocks(self, height: int, count: int, peer: Peer | None = None) -> List[Block]:
+        '''
+        Get blocks in bulk from a peer
+
+        Args:
+            height (int): Height to get the blocks from
+            count (int): How many blocks to get
+            peer (Peer | None): Peer to use, else use the selected peer
+        '''
+
+        peer = peer or self.selected_peer
+
+        if peer is None:
+            logger.critical('Cannot get blocks from peer when none are selected')
+            return []
+
+        response_json, err = self.send_request(
+            endpoint = '/getblocks',
+            method = 'POST',
+            json_data = {
+                'height': height,
+                'count': count
+            },
+            peer = peer,
+        )
+
+        if err:
+            logger.error(f'Network error sending get_block request to peer {peer.hoststr()}')
+            return []
+
+        if 'error' in response_json:
+            logger.error(f"Peer {peer.hoststr()} returned error during get_block req: {response_json}")
+            return []
+
+        if not is_schema_valid(response_json, {
+            'type': 'array',
+            'items': BLOCK_JSON_SCHEMA
+        }):
+            logger.error(f'Peer {peer.hoststr()} returned invalid JSON during get_blocks')
+            return []
+
+        blks: List[Block] = []
+
+        for block_json in response_json:
+            blk = Block.from_json(block_json, validate_json = False)
+
+            if blk is None:
+                logger.error(f'Peer {peer.hoststr()} returned invalid block data in JSON')
+                return []
+
+            blks.append(blk)
+
+        return blks
 
     def get_tophash(self, peer: Peer | None = None) -> bytes | None:
         '''
@@ -389,7 +489,7 @@ class RPCClient:
             return False
 
         if 'msg' not in response_json and 'stamp' not in response_json:
-            logger.warn(f'Peer {peer.hoststr()} sent invalid ping response')
+            logger.warning(f'Peer {peer.hoststr()} sent invalid ping response')
             return False
 
         # TODO: Also do something with the returned timestamp idk

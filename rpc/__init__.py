@@ -107,7 +107,7 @@ class RPC:
             int: Height synced to
         '''
         
-        return -1
+        logger.info('Executing sync...')
 
         self.chain.set_temporary_mode(True)
         # Gotta think about malicious nodes that send a fake height response & how to handle that
@@ -136,26 +136,65 @@ class RPC:
         
         
         start_height = self.chain.get_established_height()
+        
+        sync_success: bool = False
 
-        while True:
+        while len(sorted_peers) > 0:
             selected_peer = sorted_peers.pop(0)
             target_height = peer_heights[selected_peer]
-            next_best_height = peer_heights[sorted_peers[0]]
+
+            if len(sorted_peers) > 0:
+                next_best_height = peer_heights[sorted_peers[0]]
+            else:
+                next_best_height = -1
 
 
+            current_height = start_height + 1
+            
             # Attempt sync
 
             # TODO: Add it to the rpc settings, same as in the get_blocks_bulk func
             SYNC_CHUNKS = 256
+            blocks = []
 
-            while True:
-                chunk = self.rpc_client.get_blocks_bulk()
-                break
-            break
+            while ( # Hacky but works 
+                bool(chunk := self.rpc_client.get_blocks(current_height, SYNC_CHUNKS, selected_peer)) 
+            ):
+                blocks += chunk
+
+                current_height += len(chunk)
+                
+            if current_height < target_height:
+                continue
+
+            for block in blocks:
+                res = self.chain.add_block(block)
+
+                if not res == BlockStatus.VALID:
+                    logger.warning(f'Sync peer {selected_peer.hoststr()} sent a block that was rejected')
+                    continue
+
+            # Check the height again
+            if self.chain.get_height() < target_height and next_best_height > self.chain.get_height():
+                self.chain.wipe_temporary_data()
+                continue
+
+            sync_success = True
+
+        if sync_success:
+            sync_count = self.chain.get_height() - start_height
+
+            # We end here on break, when the sync is successful
+            logger.info(f'Sync successful. Total {sync_count} blocks retrieved.')
+
+        else:
+            sync_count = -1
+            logger.warning('Unable to sync!')
+
         # Disable temporary mode
         self.chain.set_temporary_mode(False)
 
-        return -1
+        return sync_count
 
     def get_block(self, block_height: int, use_lock: bool = True) -> dict:
         '''
@@ -202,7 +241,7 @@ class RPC:
         with self.lock:
             blocks: List[dict] = []
 
-            for height in range(block_height, min(block_height + block_count, self.chain.get_height())):
+            for height in range(block_height, min(block_height + block_count + 1, self.chain.get_height() + 1)):
                 blk = self.get_block(height, use_lock = False)
 
                 if 'error' in blk: return blk
@@ -239,7 +278,7 @@ class RPC:
             result = self.chain.add_block(block) 
 
             if result != BlockStatus.VALID:
-                logger.warn("Block sent by peer was rejected") # TODO: Keep track of the src here too
+                logger.warning("Block sent by peer was rejected") # TODO: Keep track of the src here too
                 return {'status': int(result)}
 
             logger.debug('Received valid block. Added to chain.')
@@ -278,7 +317,7 @@ class RPC:
 
             if not self.rpc_client.submit_block(block, peer) == BlockStatus.VALID:
                 rej_block_count += 1
-                logger.warn(f'Peer {peer.hoststr()} rejected propagated block. Why?')
+                logger.warning(f'Peer {peer.hoststr()} rejected propagated block. Why?')
 
         return sent_block_count, rej_block_count
 

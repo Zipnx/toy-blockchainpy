@@ -102,7 +102,7 @@ class Chain:
             # ======== DOUBLE SPEND CHECK ==========
             # If the used UTXO has been used in this block already
             if utxo in tx_inputs_used or utxo in fork_used:
-                logger.warn(f'Input UTXO of {data_hexdigest(transaction.get_txid())} already spent in current fork or block')
+                logger.warning(f'Input UTXO of {data_hexdigest(transaction.get_txid())} already spent in current fork or block')
                 return BlockStatus.INVALID_TX_UTXO_IS_SPENT 
             
             tx_inputs_used.append(utxo)
@@ -115,7 +115,7 @@ class Chain:
                 
                 # First check if they have the same data
                 if not utxo.compare_as_input(utxo_from_set):
-                    logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} present in utxoset but modified')
+                    logger.warning(f'Input utxo of {data_hexdigest(transaction.get_txid())} present in utxoset but modified')
                     return BlockStatus.INVALID_TX_MOD_UTXO
 
                 continue
@@ -123,7 +123,8 @@ class Chain:
             # In this case we haven't found the utxo in the UTXOSet, but it might have been 
             # added in the fork, so we check the fork_added
             if utxo not in fork_added:
-                logger.warn(f'Input utxo of {data_hexdigest(transaction.get_txid())} does not exist.')
+                logger.warning(f'Input utxo of {data_hexdigest(transaction.get_txid())} does not exist.')
+
                 return BlockStatus.INVALID_TX_UTXO_IS_SPENT
 
         return BlockStatus.TX_VALID
@@ -217,19 +218,19 @@ class Chain:
         
         ### CHECK IF THE DIFFICULTY LEVEL IS VALID ###
         if not block.difficulty_bits == self.get_difficulty(fork):
-            logger.warn('Block Invalid: Incorrect difficulty level')
+            logger.warning('Block Invalid: Incorrect difficulty level')
             return BlockStatus.INVALID_DIFFICULTY
         
         ### CHECK IF THE BLOCK HASH IS VALID ###
         if not block.is_hash_valid():
-            logger.warn('Block Invalid: Incorrect PoW hash')
+            logger.warning('Block Invalid: Incorrect PoW hash')
             return BlockStatus.INVALID_POW
 
         ### CHECK THE TRANSACTIONS VALIDITY ###
         if (res := self.validate_transactions(block, fork)) == BlockStatus.VALID:
             logger.debug('Block and TXs validated successfully')
         else:
-            logger.warn('Block TXs invalid')
+            logger.warning('Block TXs invalid')
 
 
         return res
@@ -695,10 +696,10 @@ class Chain:
         if value:
             # Commit all current data to storage
             self.save()
-            logger.warn('Temporary mode enabled.')
+            logger.warning('Temporary mode enabled.')
 
         else:
-            logger.warn('Temporary mode disabled.')
+            logger.warning('Temporary mode disabled.')
 
         self._temporary_data_mode = value
 

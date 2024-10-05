@@ -44,7 +44,7 @@ def make_rpc_request_raw(url: str, json_data: dict | None = None, method: Litera
         return ({'error': f'Exception while accessing {url}: {str(e)}'}, True)
     
     if r.status_code != 200:
-        logger.warn(f'Got status code: {r.status_code}, when accessing {url}')
+        logger.warning(f'Got status code: {r.status_code}, when accessing {url}')
         return ({'error': f'Invalid status code accessing {url}: {r.status_code}'}, True)
 
     return r.json(), False
